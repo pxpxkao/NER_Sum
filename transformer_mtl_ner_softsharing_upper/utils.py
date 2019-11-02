@@ -89,9 +89,9 @@ class data_utils():
         self.batch_size = args.batch_size
 
         dict_path = args.dict
-        labeldic_path = '../data/ner/label_dict.json'
-        self.train_ner_path = '../data/ner/train.txt'
-        self.tgt_ner_path = '../data/ner/label.txt'
+        labeldic_path = '../../data/ner/label_dict.json'
+        self.train_ner_path = '../../data/ner/train.txt'
+        self.tgt_ner_path = '../../data/ner/label.txt'
         self.train_sum_path = args.train_sum_file
         self.tgt_sum_path = args.tgt_sum_file
         if os.path.exists(dict_path):
@@ -106,7 +106,7 @@ class data_utils():
         if os.path.exists(labeldic_path):
             self.label2id = read_json(labeldic_path)
         else:
-            self.label2id = make_labeldic(labeldic_path, '../data/ner/label-map.index')
+            self.label2id = make_labeldic(labeldic_path, '../../data/ner/label-map.index')
         self.index2label = [[]]*len(self.label2id)
         for word in self.label2id:
             self.index2label[self.label2id[word]] = word
