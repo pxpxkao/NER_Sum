@@ -1,4 +1,3 @@
-import logging
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -10,6 +9,16 @@ from models import *
 from utils import *
 from attention import *
 
+import logging
+
+logger = logging.getLogger('ner_sum')
+logger.setLevel(logging.INFO)
+
+hdr = logging.FileHandler('./train.log')
+formatter = logging.Formatter('[%(asctime)s] %(name)s:%(levelname)s: %(message)s')
+hdr.setFormatter(formatter)
+
+logger.addHandler(hdr)
 
 class Solver():
     def __init__(self, args):
@@ -53,28 +62,28 @@ class Solver():
 
         state_dict_n = torch.load(path_n)['state_dict']
         for k, v in enumerate(state_dict_n.keys()):
-            print(v[0])
-            print(v[1].size())
-        #print(state_dict_n)
+            logger.info(v[0])
+            logger.info(v[1].size())
+        #logger.info(state_dict_n)
         #self.model.load_state_dict(state_dict)
         return model
 
     def load_summary(self, model, path_t):
         state_dict_t = torch.load(path_t)['state_dict']
         for k, v in enumerate(state_dict_t.keys()):
-            print(v[0])
-            print(v[1].size())
-        #print(state_dict_t)
+            logger.info(v[0])
+            logger.info(v[1].size())
+        #logger.info(state_dict_t)
         return model
 
     def train(self):
         # # for k, v in enumerate(self.model.state_dict().keys()):
-        # #     print(k)
-        # #     print(v.size())
+        # #     logger.info(k)
+        # #     logger.info(v.size())
         # state_dict = torch.load("./train_model/5w_model.pth")['state_dict']
         # for k, v in enumerate(state_dict.keys()):
-        #     print(v[0])
-        #     print(v[1].size())
+        #     logger.info(v[0])
+        #     logger.info(v[1].size())
         # model = self.load_summary(self.model, "../transformer_ptr/train_model/50w_model.pth")
         # model = self.load_ner(self.model, "../ner/transformer-ner/train_model/model_30.pth")
         
@@ -91,12 +100,12 @@ class Solver():
             
             batch_ner = data_yielder_ner.__next__()
             
-            # print(batch_ner['src'].long().size())
-            # print(batch_ner['src_mask'].size())
-            # print(batch_sum['src'].long().size())
-            # print(batch_sum['src_mask'].size())
-            # print(batch_sum['tgt'].long().size())
-            # print(batch_sum['tgt_mask'].size())
+            # logger.info(batch_ner['src'].long().size())
+            # logger.info(batch_ner['src_mask'].size())
+            # logger.info(batch_sum['src'].long().size())
+            # logger.info(batch_sum['src_mask'].size())
+            # logger.info(batch_sum['tgt'].long().size())
+            # logger.info(batch_sum['tgt_mask'].size())
             if step % 20 == 1: # dataset of ner:sum = 14000:280000 = 1:20
                 optim.zero_grad()
                 out_ner = self.model.forward(batch_ner['src'].long(), 
@@ -113,13 +122,13 @@ class Solver():
 
                 if step % 500 == 1:
                     elapsed = time.time() - start
-                    print("Epoch Step: %d Loss: %f Time: %f" %
+                    logger.info("Epoch Step: %d Loss: %f Time: %f" %
                             (step, np.mean(total_loss), elapsed))
-                    print('src:',self.data_utils.id2sent(gg[0]))
-                    print('tgt:',self.data_utils.id2label(yy[0]))
-                    print('pred:',self.data_utils.id2label(pred_ner[0]))
+                    logger.info('src:',self.data_utils.id2sent(gg[0]))
+                    logger.info('tgt:',self.data_utils.id2label(yy[0]))
+                    logger.info('pred:',self.data_utils.id2label(pred_ner[0]))
 
-                    print()
+                    logger.info()
 
            
             batch_sum = data_yielder_sum.__next__()
@@ -144,31 +153,30 @@ class Solver():
             
             if step % 500 == 1:
                 elapsed = time.time() - start
-                print("Epoch Step: %d Loss: %f MTL Loss: %f Time: %f" %
+                logger.info("Epoch Step: %d Loss: %f MTL Loss: %f Time: %f" %
                         (step, np.mean(total_loss), np.mean(mtl_loss), elapsed))
-                print('src:',self.data_utils.id2sent(gg[0]))
-                print('tgt:',self.data_utils.id2sent(tt[0]))
-                print('pred:',self.data_utils.id2sent(pred_sum[0]))
+                logger.info('src:',self.data_utils.id2sent(gg[0]))
+                logger.info('tgt:',self.data_utils.id2sent(tt[0]))
+                logger.info('pred:',self.data_utils.id2sent(pred_sum[0]))
 
 
                 pp =  self.model.greedy_decode(batch_sum['src'].long()[:1], batch_sum['src_mask'][:1], max_len, self.data_utils.bos)
                 pp = pp.detach().cpu().numpy()
-                print('pred_greedy:',self.data_utils.id2sent(pp[0]))
-                
-                print()
+                logger.info('pred_greedy:',self.data_utils.id2sent(pp[0]))
+
+                logger.info()
                 start = time.time()
                 total_loss = []
                 mtl_loss = []
 
             if step % 10000 == 0:
-                print('saving!!!!')
+                logger.info('saving!!!!')
                 
                 model_name = 'model_'+str(step//10000)+'.pth'
                 state = {'step': step, 'state_dict': self.model.state_dict()}
                 #state = {'step': step, 'state_dict': self.model.state_dict(),
                 #    'optimizer' : optim_topic_gen.state_dict()}
                 torch.save(state, os.path.join(self.model_dir, model_name))
-            logging.basicConfig(filename='example.log',level=logging.DEBUG)
 
     def _test(self):
         #prepare model
@@ -192,25 +200,25 @@ class Solver():
 
         index = 0
         for batch in data_yielder:
-            #print(batch['src'].data.size())
+            #logger.info(batch['src'].data.size())
             out = self.model.greedy_decode(batch['src'].long(), batch['src_mask'], max_len, self.data_utils.bos)
             # out = self.model.forward(batch['src'].long(), batch['src_mask'])
             
             # out = torch.argmax(out, dim = 2)
-            print(out.size())
+            logger.info(out.size())
 
             # for i in range(out.size(0)):
             #     nonz = torch.nonzero(batch['src_mask'][i])
-            #     print(nonz)
+            #     logger.info(nonz)
             #     idx = nonz[-1][1].item()
             #     sentence = self.data_utils.id2label(out[i][:idx], True)
-            #     #print(l[1:])
+            #     #logger.info(l[1:])
             #     f.write(sentence)
             #     f.write("\n")
             index += out.size(0)
-            print(index)
+            logger.info(index)
             for l in out:
                 sentence = self.data_utils.id2sent(l[1:], True)
-                #print(l[1:])
+                #logger.info(l[1:])
                 f.write(sentence)
                 f.write("\n")
