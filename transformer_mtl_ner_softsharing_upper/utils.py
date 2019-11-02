@@ -90,6 +90,8 @@ def make_labeldic(label_dic, label_map):
 
 class data_utils():
     def __init__(self, args, logger):
+        self.logger = logger
+        
         self.batch_size = args.batch_size
 
         dict_path = args.dict
