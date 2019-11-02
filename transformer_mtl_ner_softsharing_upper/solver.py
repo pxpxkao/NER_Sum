@@ -130,6 +130,14 @@ class Solver():
 
                     logger.info('')
 
+                    print("Epoch Step: %d Loss: %f Time: %f" %
+                            (step, np.mean(total_loss), elapsed))
+                    print('src: '+self.data_utils.id2sent(gg[0]))
+                    print('tgt: '+self.data_utils.id2label(yy[0]))
+                    print('pred: '+self.data_utils.id2label(pred_ner[0]))
+
+                    print('')
+
            
             batch_sum = data_yielder_sum.__next__()
             optim.zero_grad()
@@ -159,18 +167,27 @@ class Solver():
                 logger.info('tgt: '+self.data_utils.id2sent(tt[0]))
                 logger.info('pred: '+self.data_utils.id2sent(pred_sum[0]))
 
+                print("Epoch Step: %d Loss: %f MTL Loss: %f Time: %f" %
+                        (step, np.mean(total_loss), np.mean(mtl_loss), elapsed))
+                print('src: '+self.data_utils.id2sent(gg[0]))
+                print('tgt: '+self.data_utils.id2sent(tt[0]))
+                print('pred: '+self.data_utils.id2sent(pred_sum[0]))
+
 
                 pp =  self.model.greedy_decode(batch_sum['src'].long()[:1], batch_sum['src_mask'][:1], max_len, self.data_utils.bos)
                 pp = pp.detach().cpu().numpy()
                 logger.info('pred_greedy: '+self.data_utils.id2sent(pp[0]))
-
                 logger.info('')
+
+                print('pred_greedy: '+self.data_utils.id2sent(pp[0]))
+                print('')
                 start = time.time()
                 total_loss = []
                 mtl_loss = []
 
             if step % 10000 == 0:
                 logger.info('saving!!!!')
+                print('saving!!!!')
                 
                 model_name = 'model_'+str(step//10000)+'.pth'
                 state = {'step': step, 'state_dict': self.model.state_dict()}
@@ -217,6 +234,7 @@ class Solver():
             #     f.write("\n")
             index += out.size(0)
             logger.info(index)
+            print(index)
             for l in out:
                 sentence = self.data_utils.id2sent(l[1:], True)
                 #logger.info(l[1:])
