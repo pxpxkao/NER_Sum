@@ -128,7 +128,7 @@ class Solver():
                     logger.info('tgt:',self.data_utils.id2label(yy[0]))
                     logger.info('pred:',self.data_utils.id2label(pred_ner[0]))
 
-                    logger.info()
+                    logger.info('')
 
            
             batch_sum = data_yielder_sum.__next__()
@@ -164,7 +164,7 @@ class Solver():
                 pp = pp.detach().cpu().numpy()
                 logger.info('pred_greedy:',self.data_utils.id2sent(pp[0]))
 
-                logger.info()
+                logger.info('')
                 start = time.time()
                 total_loss = []
                 mtl_loss = []
