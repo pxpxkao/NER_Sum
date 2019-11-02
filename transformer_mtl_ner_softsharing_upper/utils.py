@@ -93,7 +93,7 @@ class data_utils():
         self.train_ner_path = '../data/ner/train.txt'
         self.tgt_ner_path = '../data/ner/label.txt'
         self.train_sum_path = args.train_sum_file
-        self.tgt_sum_path = args.tgt_sum_path
+        self.tgt_sum_path = args.tgt_sum_file
         if os.path.exists(dict_path):
             self.word2id = read_json(dict_path)
         else:
