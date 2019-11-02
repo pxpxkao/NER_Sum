@@ -133,6 +133,8 @@ class Solver():
 
             lamda = 1000
             loss_mtl = self.model.mtl_loss()
+            print("loss_comput:", self.model.loss_compute(out_sum, batch_sum['y'].long()))
+            print("loss_mtl:", loss_mtl)
             loss = self.model.loss_compute(out_sum, batch_sum['y'].long()) + lamda * loss_mtl
 
             loss.backward()
@@ -142,9 +144,8 @@ class Solver():
             mtl_loss.append(lamda * loss_mtl.detach().cpu().numpy())
             
             if step % 500 == 1:
-                print("mtl_loss:", mtl_loss)
                 elapsed = time.time() - start
-                print("Epoch Step: %d Loss: %f Time: %f" %
+                print("Epoch Step: %d Loss: %f MTL Loss: %f Time: %f" %
                         (step, np.mean(total_loss), np.mean(mtl_loss), elapsed))
                 print('src:',self.data_utils.id2sent(gg[0]))
                 print('tgt:',self.data_utils.id2sent(tt[0]))
