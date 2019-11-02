@@ -91,7 +91,7 @@ def make_labeldic(label_dic, label_map):
 class data_utils():
     def __init__(self, args, logger):
         self.logger = logger
-        
+
         self.batch_size = args.batch_size
 
         dict_path = args.dict
@@ -119,7 +119,7 @@ class data_utils():
 
 
         self.vocab_size = len(self.word2id)
-        self.logger.info('vocab_size:',self.vocab_size)
+        self.logger.info('vocab_size: '+self.vocab_size)
         self.eos = self.word2id['__EOS__']
         self.bos = self.word2id['__BOS__']
 
