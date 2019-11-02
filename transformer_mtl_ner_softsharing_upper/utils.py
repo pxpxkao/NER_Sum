@@ -117,7 +117,7 @@ class data_utils():
 
 
         self.vocab_size = len(self.word2id)
-        print('vocab_size:',self.vocab_size)
+        logger.info('vocab_size:',self.vocab_size)
         self.eos = self.word2id['__EOS__']
         self.bos = self.word2id['__BOS__']
 
@@ -151,15 +151,15 @@ class data_utils():
             if word in self.label2id:
                 vec[i] = self.label2id[word]
                 if vec[i] > 8:
-                    print("==")
-                    print(vec[i])
+                    logger.debug("==")
+                    logger.debug(vec[i])
         return vec
 
     def data_yielder_ner(self, num_epoch = 1):
         batch = {'src':[],'src_mask':[],'y':[]}
         for epo in range(num_epoch):
             start_time = time.time()
-            print("start epo %d" % (epo))
+            logger.info("start epo %d" % (epo))
             for line1, line2 in zip(open(self.train_ner_path), open(self.tgt_ner_path)):
                 vec1 = self.text2id(line1.strip(), 45)
                 vec2 = self.labeltext2id(line2.strip(), 45)
@@ -174,13 +174,13 @@ class data_utils():
                         yield batch
                         batch = {'src':[], 'src_mask':[],'y':[]}
             end_time = time.time()
-            print('finish epo %d, time %f' % (epo,end_time-start_time))
+            logger.info('finish epo %d, time %f' % (epo,end_time-start_time))
 
     def data_yielder_sum(self):
         batch = {'src':[],'tgt':[],'src_mask':[],'tgt_mask':[],'y':[]}
         for epo in range(20):
             start_time = time.time()
-            print("start epo %d" % (epo))
+            logger.info("start epo %d" % (epo))
             # index = 0
             for line1,line2 in zip(open(self.train_sum_path),open(self.tgt_sum_path)):
                 vec1 = self.text2id(line1.strip(), 300)
@@ -199,7 +199,7 @@ class data_utils():
                         yield batch
                         batch = {'src':[],'tgt':[],'src_mask':[],'tgt_mask':[],'y':[]}
             end_time = time.time()
-            print('finish epo %d, time %f' % (epo,end_time-start_time))
+            logger.info('finish epo %d, time %f' % (epo,end_time-start_time))
 
     def id2sent(self,indices, test=False):
         sent = []

@@ -122,11 +122,11 @@ class Solver():
 
                 if step % 500 == 1:
                     elapsed = time.time() - start
-                    logger.info("Epoch Step: %d Loss: %f Time: %f" %
+                    logger.info("\nEpoch Step: %d Loss: %f Time: %f" %
                             (step, np.mean(total_loss), elapsed))
-                    logger.info('src:',self.data_utils.id2sent(gg[0]))
-                    logger.info('tgt:',self.data_utils.id2label(yy[0]))
-                    logger.info('pred:',self.data_utils.id2label(pred_ner[0]))
+                    logger.info('\nsrc: '+self.data_utils.id2sent(gg[0]))
+                    logger.info('\ntgt: '+self.data_utils.id2label(yy[0]))
+                    logger.info('\npred: '+self.data_utils.id2label(pred_ner[0]))
 
                     logger.info('')
 
@@ -153,16 +153,16 @@ class Solver():
             
             if step % 500 == 1:
                 elapsed = time.time() - start
-                logger.info("Epoch Step: %d Loss: %f MTL Loss: %f Time: %f" %
+                logger.info("\nEpoch Step: %d Loss: %f MTL Loss: %f Time: %f" %
                         (step, np.mean(total_loss), np.mean(mtl_loss), elapsed))
-                logger.info('src:'+self.data_utils.id2sent(gg[0]))
-                logger.info('tgt:'+self.data_utils.id2sent(tt[0]))
-                logger.info('pred:'+self.data_utils.id2sent(pred_sum[0]))
+                logger.info('\nsrc: '+self.data_utils.id2sent(gg[0]))
+                logger.info('\ntgt: '+self.data_utils.id2sent(tt[0]))
+                logger.info('\npred: '+self.data_utils.id2sent(pred_sum[0]))
 
 
                 pp =  self.model.greedy_decode(batch_sum['src'].long()[:1], batch_sum['src_mask'][:1], max_len, self.data_utils.bos)
                 pp = pp.detach().cpu().numpy()
-                logger.info('pred_greedy:'+self.data_utils.id2sent(pp[0]))
+                logger.info('\npred_greedy: '+self.data_utils.id2sent(pp[0]))
 
                 logger.info('')
                 start = time.time()
