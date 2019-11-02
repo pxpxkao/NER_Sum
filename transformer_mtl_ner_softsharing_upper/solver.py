@@ -1,3 +1,4 @@
+import logging
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -167,6 +168,7 @@ class Solver():
                 #state = {'step': step, 'state_dict': self.model.state_dict(),
                 #    'optimizer' : optim_topic_gen.state_dict()}
                 torch.save(state, os.path.join(self.model_dir, model_name))
+            logging.basicConfig(filename='example.log',level=logging.DEBUG)
 
     def _test(self):
         #prepare model
