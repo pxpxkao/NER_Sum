@@ -133,8 +133,6 @@ class Solver():
 
             lamda = 1000
             loss_mtl = self.model.mtl_loss()
-            print("loss_comput:", self.model.loss_compute(out_sum, batch_sum['y'].long()))
-            print("loss_mtl:", loss_mtl)
             loss = self.model.loss_compute(out_sum, batch_sum['y'].long()) + lamda * loss_mtl
 
             loss.backward()

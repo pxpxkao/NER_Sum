@@ -87,7 +87,7 @@ class EncoderDecoder(nn.Module):
 
     def greedy_decode(self, src, src_mask, max_len, start_symbol):
         out_sum = self.encode_sum(src, src_mask)
-        memory = self.shared_encoder(out_sum, src_mask)
+        memory = self.shared_encoder_sum(out_sum, src_mask)
         #memory = self.encode_sum(self.encode_ner(src, src_mask), src_mask)
 
         #print(memory.size())
