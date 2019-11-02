@@ -23,7 +23,7 @@ logger.addHandler(hdr)
 class Solver():
     def __init__(self, args):
         self.args = args
-        self.data_utils = data_utils(args)
+        self.data_utils = data_utils(args, logger)
 
         self.model = self.make_model(self.data_utils.vocab_size, self.data_utils.vocab_size)
         torch.cuda.synchronize()
