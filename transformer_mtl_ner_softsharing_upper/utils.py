@@ -119,7 +119,7 @@ class data_utils():
 
 
         self.vocab_size = len(self.word2id)
-        self.logger.info('vocab_size: '+self.vocab_size)
+        self.logger.info('vocab_size: %d' % self.vocab_size)
         self.eos = self.word2id['__EOS__']
         self.bos = self.word2id['__BOS__']
 
