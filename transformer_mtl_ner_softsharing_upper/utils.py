@@ -12,6 +12,8 @@ import torch.autograd as autograd
 from nltk.corpus import stopwords
 import time
 
+from solver import logger
+
 def read_json(filename):
     with open(filename, 'r') as fp:
         data = json.load(fp)
