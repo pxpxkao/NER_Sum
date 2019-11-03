@@ -51,21 +51,18 @@ def make_dict(max_num, dict_path, train_ner_path, train_sum_path):
     
     for line in tqdm(open(train_ner_path)):
         line_count += 1.0
-        for word in line.split():
+        for word in line.lower().split():
             word_count[word] = word_count.get(word,0) + 1
 
     for line in tqdm(open(train_sum_path)):
         line_count += 1.0
-        for word in line.split():
+        for word in line.lower().split():
             word_count[word] = word_count.get(word,0) + 1
 
-    word2id['__EOS__'] = len(word2id)
-    word2id['__BOS__'] = len(word2id)
+    word2id['</t>'] = len(word2id)
+    word2id['<t>'] = len(word2id)
     word2id['__UNK__'] = len(word2id)
-    if not word2id.get('<t>'):
-        word2id['<t>'] = len(word2id)
-    if not word2id.get('</t>'):
-        word2id['</t>'] = len(word2id)
+
     word_count_list = sorted(word_count.items(), key=operator.itemgetter(1))
     for item in word_count_list[-(max_num*2):][::-1]:
         
@@ -120,8 +117,8 @@ class data_utils():
 
         self.vocab_size = len(self.word2id)
         print('vocab_size: %d' % self.vocab_size)
-        self.eos = self.word2id['__EOS__']
-        self.bos = self.word2id['__BOS__']
+        self.eos = self.word2id['</t>']
+        self.bos = self.word2id['<t>']
 
     def text2id(self, text, seq_length=40):
         vec = np.zeros([seq_length] ,dtype=np.int32)
