@@ -50,12 +50,16 @@ class Solver():
                 word_embed,
                 word_embed)
             
-            
-            # This was important from their code. 
-            # Initialize parameters with Glorot / fan_avg.
-            for p in model.parameters():
-                if p.dim() > 1:
-                    nn.init.xavier_uniform_(p)
+            load_path = self.args.load_model
+            if load_path:
+                state_dict = torch.load(load_path)['state_dict']
+                model.load_state_dict(state_dict)
+            else:
+                # This was important from their code. 
+                # Initialize parameters with Glorot / fan_avg.
+                for p in model.parameters():
+                    if p.dim() > 1:
+                        nn.init.xavier_uniform_(p)
             return model.cuda()
 
     def load_ner(self, model, path_n):
