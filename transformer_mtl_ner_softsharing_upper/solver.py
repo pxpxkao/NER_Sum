@@ -14,7 +14,7 @@ import logging
 logger = logging.getLogger('ner_sum')
 logger.setLevel(logging.INFO)
 
-hdr = logging.FileHandler('./train.log')
+hdr = logging.FileHandler('./log/train.log')
 formatter = logging.Formatter('[%(asctime)s] %(name)s:%(levelname)s: %(message)s')
 hdr.setFormatter(formatter)
 
