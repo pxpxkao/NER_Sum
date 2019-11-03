@@ -93,6 +93,7 @@ def make_labeldic(label_dic, label_map):
 class data_utils():
     def __init__(self, args, logger):
         self.logger = logger
+        self.args = args
 
         self.batch_size = args.batch_size
 
@@ -140,8 +141,9 @@ class data_utils():
                 vec[i] = self.word2id['__UNK__']
                 unknown += 1
 
-        if length == 0 or unknown / length > 0.1 or length > seq_length*1.5:
-            vec = None
+        if self.args.train:
+            if length == 0 or unknown / length > 0.1 or length > seq_length*1.5:
+                vec = None
 
         return vec
     
