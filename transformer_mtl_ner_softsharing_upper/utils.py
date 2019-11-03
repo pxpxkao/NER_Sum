@@ -138,7 +138,7 @@ class data_utils():
                 vec[i] = self.word2id['__UNK__']
                 unknown += 1
 
-        if unknown / length > 0.1 or length > seq_length*1.5:
+        if unknown / length > 0.1 or length > seq_length*1.5 or length == 0:
             vec = None
 
         return vec
