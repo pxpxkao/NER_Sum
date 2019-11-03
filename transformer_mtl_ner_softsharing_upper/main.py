@@ -8,7 +8,7 @@ def parse():
     parser.add_argument('-train_sum_file',default='../../data/cnndm/train.txt.src',help='train_sum dir')
     parser.add_argument('-tgt_sum_file',default='../../data/cnndm/train.txt.tgt.tagged',help='tgt_sum dir')
     parser.add_argument('-test_sum_file',default='../../data/cnndm/test.txt.src',help='test_sum dir')
-    parser.add_argument('-load', default='./train_model/model.pth', help= 'load: model_dir', dest= 'load_model')
+    parser.add_argument('-load', help= 'load: model_dir', dest= 'load_model') #, default='./train_model/model.pth'
     parser.add_argument('-train', action='store_true',help='whether train whole model')
     parser.add_argument('-test', action='store_true',help='whether test')
     parser.add_argument('-pretrain', action='store_true',help='whether pretrain')
