@@ -189,11 +189,11 @@ class Solver():
                 total_loss = []
                 mtl_loss = []
 
-            if step % 10000 == 0:
+            if step % 5000 == 0:
                 logger.info('saving!!!!')
                 print('saving!!!!')
                 
-                model_name = 'model_'+str(step//10000)+'.pth'
+                model_name = 'model_'+str(step//5000)+'.pth'
                 state = {'step': step, 'state_dict': self.model.state_dict()}
                 #state = {'step': step, 'state_dict': self.model.state_dict(),
                 #    'optimizer' : optim_topic_gen.state_dict()}
