@@ -213,8 +213,12 @@ class data_utils():
         for index in indices:
             if test and (index == self.word2id['__EOS__'] or index in word_dict):
                 continue
-            sent.append(self.index2word[index])
-            word_dict[index] = 1
+            try:
+                sent.append(self.index2word[index])
+                word_dict[index] = 1
+            except:
+                self.logger.debug("Out of index: %d" % index)
+                print("Out of index: %d" % index)
 
         return ' '.join(sent)
     
@@ -223,7 +227,12 @@ class data_utils():
         #print(indices.size())
         for index in indices:
             # print(index)
-            sent.append(self.index2label[index])
+            
+            try:
+                sent.append(self.index2label[index])
+            except:
+                self.logger.debug("Label out of index: %d" % index)
+                print("Label out of index: %d" % index)
 
             
         return ' '.join(sent[:-1])
