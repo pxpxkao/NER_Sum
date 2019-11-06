@@ -79,7 +79,7 @@ class data_utils():
     def __init__(self, args):
         self.batch_size = args.batch_size
         self.train = True if args.train else False
-        dict_path = '../origin/data/dictionary.json'
+        dict_path = '../../data/dictionary.json'
         self.train_path = args.train_file
         if not self.train:
             assert (os.path.exists(dict_path))
@@ -117,7 +117,7 @@ class data_utils():
         # if unknown / length > 0.1 or length > seq_length*1.5:
         #     vec = None
         if self.train:
-            if unknown / length > 0.1 or length > seq_length*1.5:
+            if length == 0 orunknown / length > 0.1 or length > seq_length*1.5:
                 vec = None
 
         return vec
@@ -126,12 +126,12 @@ class data_utils():
     def data_yielder(self, src_file, tgt_file):
         if self.train:
             batch = {'src':[],'tgt':[],'src_mask':[],'tgt_mask':[],'y':[]}
-            for epo in range(20):
+            for epo in range(1000):
                 start_time = time.time()
                 print("start epo %d" % (epo))
                 for line1,line2 in zip(open(src_file),open(tgt_file)):
-                    vec1 = self.text2id(line1.strip(), 45)
-                    vec2 = self.text2id(line2.strip(), 14)
+                    vec1 = self.text2id(line1.strip(), 300)
+                    vec2 = self.text2id(line2.strip(), 50)
 
                     if vec1 is not None and vec2 is not None:
                         batch['src'].append(vec1)
@@ -156,7 +156,7 @@ class data_utils():
                 index = 0
                 for line1 in open(src_file):
                     index += 1
-                    vec1 = self.text2id(line1.strip(), 45)
+                    vec1 = self.text2id(line1.strip(), 300)
                     
                     if vec1 is not None:
                         batch['src'].append(vec1)
@@ -169,10 +169,6 @@ class data_utils():
                             batch = {'src':[], 'src_mask':[]}
                 end_time = time.time()
                 print('finish epo %d, time %f' % (epo,end_time-start_time))
-
-
-
-
 
     def id2sent(self, indices, test=False):
         sent = []

@@ -189,11 +189,19 @@ class Solver():
                 total_loss = []
                 mtl_loss = []
 
-            if step % 5000 == 0:
-                logger.info('saving!!!!')
+            if step % 1000 == 0:
+                logger.info('saving!!!! step %d' %step)
                 print('saving!!!!')
                 
-                model_name = 'model_'+str(step//5000)+'.pth'
+                model_name = 'model.pth'
+                state = {'step': step, 'state_dict': self.model.state_dict()}
+                torch.save(state, os.path.join(self.model_dir, model_name))
+
+            if step % 10000 == 0:
+                logger.info('saving!!!! step %d' %step)
+                print('saving!!!!')
+                
+                model_name = 'model_'+str(step//10000)+'w.pth'
                 state = {'step': step, 'state_dict': self.model.state_dict()}
                 #state = {'step': step, 'state_dict': self.model.state_dict(),
                 #    'optimizer' : optim_topic_gen.state_dict()}
