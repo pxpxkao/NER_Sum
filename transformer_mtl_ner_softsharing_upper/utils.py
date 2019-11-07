@@ -52,10 +52,13 @@ def make_dict(max_num, dict_path, ner_dict_path, train_ner_path, train_sum_path,
     word2id['__BOS__'] = len(word2id)
     word2id['__UNK__'] = len(word2id)
 
-    word2id = read_json(ner_dict_path)
-    for word, _ in word2id.items():
+    ner_word2id = read_json(ner_dict_path)
+    for word, idx in ner_word2id.items():
         if word != '__EOS__' and word != '__BOS__' and word != '__UNK__':
-            word2id.update({word.lower(): word2id.pop(word)})
+            # word2id.update({word.lower(): word2id.pop(word)})
+            word2id[word.lower()] = idx
+        else:
+            word2id[word] = idx
 
     # for line in tqdm(open(train_ner_path)):
     #     line_count += 1.0
