@@ -17,7 +17,6 @@ def read_json(filename):
         data = json.load(fp)
     return data
 
-
 def write_json(filename,data):
     with open(filename, 'w') as fp:
         json.dump(data, fp)
@@ -44,37 +43,42 @@ def tens2np(tensor):
     return tensor.detach().cpu().numpy()
 
 
-def make_dict(max_num, dict_path, train_ner_path, train_sum_path):
+def make_dict(max_num, dict_path, ner_dict_path, train_ner_path, train_sum_path, tgt_sum_path):
     word_count = dict()
     word2id = dict()
     line_count = 0
-    
-    for line in tqdm(open(train_ner_path)):
-        line_count += 1.0
-        for word in line.lower().split():
-            word_count[word] = word_count.get(word,0) + 1
+
+    word2id['__EOS__'] = len(word2id)
+    word2id['__BOS__'] = len(word2id)
+    word2id['__UNK__'] = len(word2id)
+
+    word2id = read_json(ner_dict_path)
+    for word, _ in word2id.items():
+        if word != '__EOS__' and word != '__BOS__' and word != '__UNK__':
+            word2id.update({word.lower(): word2id.pop(word)})
+
+    # for line in tqdm(open(train_ner_path)):
+    #     line_count += 1.0
+    #     for word in line.lower().split():
+    #         word_count[word] = word_count.get(word,0) + 1
 
     for line in tqdm(open(train_sum_path)):
         line_count += 1.0
         for word in line.lower().split():
             word_count[word] = word_count.get(word,0) + 1
 
-    word2id['__EOS__'] = len(word2id)
-    word2id['__BOS__'] = len(word2id)
-    word2id['__UNK__'] = len(word2id)
-
-    if not word2id.get('<t>'):
-        word2id['<t>'] = len(word2id)
-    if not word2id.get('</t>'):
-        word2id['</t>'] = len(word2id)
+    for line in tqdm(open(tgt_sum_path)):
+        line_count += 1.0
+        for word in line.lower().split():
+            word_count[word] = word_count.get(word,0) + 1
 
     word_count_list = sorted(word_count.items(), key=operator.itemgetter(1))
     for item in word_count_list[-(max_num*2):][::-1]:
-        
         if item[1] < word_count_list[-max_num][1]:
             continue
         word = item[0]
-        word2id[word] = len(word2id)
+        if not word2id.get(word):
+            word2id[word] = len(word2id)
 
     with open(dict_path,'w') as fp:
         json.dump(word2id, fp)
@@ -98,6 +102,7 @@ class data_utils():
         self.batch_size = args.batch_size
 
         dict_path = args.dict
+        ner_dict_path = '../../data/ner/dictionary.json'
         labeldic_path = '../../data/ner/label_dict.json'
         self.train_ner_path = '../../data/ner/train.txt'
         self.tgt_ner_path = '../../data/ner/label.txt'
@@ -106,7 +111,7 @@ class data_utils():
         if os.path.exists(dict_path):
             self.word2id = read_json(dict_path)
         else:
-            self.word2id = make_dict(30000, dict_path, self.train_ner_path, self.train_sum_path)
+            self.word2id = make_dict(30000, dict_path, ner_dict_path, self.train_ner_path, self.train_sum_path, self.tgt_sum_path)
 
         self.index2word = [[]]*len(self.word2id)
         for word in self.word2id:
@@ -184,13 +189,13 @@ class data_utils():
 
     def data_yielder_sum(self):
         batch = {'src':[],'tgt':[],'src_mask':[],'tgt_mask':[],'y':[]}
-        for epo in range(20):
+        for epo in range(1000):
             start_time = time.time()
             print("start epo %d" % (epo))
             # index = 0
             for line1,line2 in zip(open(self.train_sum_path),open(self.tgt_sum_path)):
-                vec1 = self.text2id(line1.strip(), 300)
-                vec2 = self.text2id(line2.strip(), 60)
+                vec1 = self.text2id(line1.strip(), 256)
+                vec2 = self.text2id(line2.strip(), 100)
 
                 if vec1 is not None and vec2 is not None:
                     batch['src'].append(vec1)

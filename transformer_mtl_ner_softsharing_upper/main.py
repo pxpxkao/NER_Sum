@@ -13,7 +13,7 @@ def parse():
     parser.add_argument('-test', action='store_true',help='whether test')
     parser.add_argument('-pretrain', action='store_true',help='whether pretrain')
     parser.add_argument('-dict', default='../../data/dictionary.json', help='dict_dir')
-    parser.add_argument('-max_len', type=int, default=60, help='maximum output length', dest= 'max_len')
+    parser.add_argument('-max_len', type=int, default=100, help='maximum output length', dest= 'max_len')
     parser.add_argument('-pred_dir', default='./pred_dir/', help='prediction dir', dest='pred_dir')
     parser.add_argument('-filename', default='pred.txt', help='prediction file', dest='filename')
     args = parser.parse_args()
