@@ -12,11 +12,9 @@ def write_json(filename,data):
 
 args = sys.argv
 
-with open(args[1], 'r') as fp:
+with open(args[2], 'r') as fp:
     summary = fp.readlines()
 print(len(summary))
-
-summary_10 = summary[:3]
 
 import spacy
 nlp = spacy.load('en_core_web_lg')
@@ -29,7 +27,7 @@ nlp = spacy.load('en_core_web_lg')
 label_count = {}
 label_map = {}
 ner_map = {}
-for idx, s in enumerate(summary_10):
+for idx, s in enumerate(summary):
     print(idx)
     doc = nlp(s)
     ner_list = {}
@@ -41,6 +39,9 @@ for idx, s in enumerate(summary_10):
 for key, value in label_count.items():
     label_map[key] = len(label_map)
 
-write_json('ner.map', ner_map)
+if(args[1] == '-train_data'):
+    write_json('train.ner.map', ner_map)
+if(args[1] == '-test_data'):
+    write_json('test.ner.map', ner_map)
 write_json('label.map', label_map)
 
