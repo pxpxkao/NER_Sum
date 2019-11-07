@@ -46,7 +46,7 @@ def tens2np(tensor):
     return tensor.detach().cpu().numpy()
 
 
-def make_dict(max_num, dict_path, train_path):
+def make_dict(max_num, dict_path, train_path, target_path):
     #create dict with voc length of max_num
     word_count = dict()
     word2id = dict()
@@ -56,6 +56,11 @@ def make_dict(max_num, dict_path, train_path):
         line_count += 1.0
         for word in line.split():
             word_count[word] = word_count.get(word,0) + 1
+    for line in tqdm(open(target_path)):
+        line_count += 1.0
+        for word in line.split():
+            word_count[word] = word_count.get(word,0) + 1
+
      
     word2id['__EOS__'] = len(word2id)
     word2id['__BOS__'] = len(word2id)
@@ -79,15 +84,16 @@ class data_utils():
     def __init__(self, args):
         self.batch_size = args.batch_size
         self.train = True if args.train else False
-        dict_path = '../../data/dictionary.json'
+        dict_path = './dictionary.json'
         self.train_path = args.train_file
+        self.target_path = args.tgt_file
         if not self.train:
             assert (os.path.exists(dict_path))
         
         if os.path.exists(dict_path):
             self.word2id = read_json(dict_path)
         else:
-            self.word2id = make_dict(25000, dict_path, self.train_path)
+            self.word2id = make_dict(25000, dict_path, self.train_path, self.target_path)
 
         self.index2word = [[]]*len(self.word2id)
         for word in self.word2id:
@@ -99,12 +105,11 @@ class data_utils():
         self.bos = self.word2id['__BOS__']
 
 
-    def text2id(self, text, seq_length=40):
+    def text2id(self, text, seq_length):
         vec = np.zeros([seq_length] ,dtype=np.int32)
         unknown = 0.
         word_list = text.strip().split()
         length = len(word_list)
-
         for i,word in enumerate(word_list):
             if i >= seq_length:
                 break
@@ -116,22 +121,33 @@ class data_utils():
 
         # if unknown / length > 0.1 or length > seq_length*1.5:
         #     vec = None
-        if self.train:
-            if length == 0 orunknown / length > 0.1 or length > seq_length*1.5:
-                vec = None
+        # if self.train:
+        #     if length == 0:
+        #         vec = None
+        #         print('damn') 
+        #         return vec
+        #     if unknown / length > 0.2 or length > seq_length*1.22:
+        #         print('fuck')
+        #         print(length, ' ', unknown, ' ' , seq_length)
+        #         vec = None
 
         return vec
 
 
-    def data_yielder(self, src_file, tgt_file):
+    def data_yielder(self, src_file, tgt_file, num_epoch = 100):
+        print(src_file)
+        print(tgt_file)
+        print(self.batch_size)
+        src_length = 256
+        tgt_length = 80
         if self.train:
             batch = {'src':[],'tgt':[],'src_mask':[],'tgt_mask':[],'y':[]}
-            for epo in range(1000):
+            for epo in range(num_epoch):
                 start_time = time.time()
                 print("start epo %d" % (epo))
                 for line1,line2 in zip(open(src_file),open(tgt_file)):
-                    vec1 = self.text2id(line1.strip(), 300)
-                    vec2 = self.text2id(line2.strip(), 50)
+                    vec1 = self.text2id(line1.strip(), src_length)
+                    vec2 = self.text2id(line2.strip(), tgt_length)
 
                     if vec1 is not None and vec2 is not None:
                         batch['src'].append(vec1)
@@ -143,8 +159,11 @@ class data_utils():
                         if len(batch['src']) == self.batch_size:
                             batch = {k: cc(v) for k, v in batch.items()}
                             torch.cuda.synchronize()
+                            vec1 = None
+                            vec2 = None
                             yield batch
                             batch = {'src':[],'tgt':[],'src_mask':[],'tgt_mask':[],'y':[]}
+                            #batch = {'src':[]}
                 end_time = time.time()
                 print('finish epo %d, time %f' % (epo,end_time-start_time))
 
@@ -156,7 +175,7 @@ class data_utils():
                 index = 0
                 for line1 in open(src_file):
                     index += 1
-                    vec1 = self.text2id(line1.strip(), 300)
+                    vec1 = self.text2id(line1.strip(), 80)
                     
                     if vec1 is not None:
                         batch['src'].append(vec1)
@@ -169,6 +188,10 @@ class data_utils():
                             batch = {'src':[], 'src_mask':[]}
                 end_time = time.time()
                 print('finish epo %d, time %f' % (epo,end_time-start_time))
+
+
+
+
 
     def id2sent(self, indices, test=False):
         sent = []
