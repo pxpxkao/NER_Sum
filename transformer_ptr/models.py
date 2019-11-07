@@ -74,6 +74,17 @@ class EncoderDecoder(nn.Module):
         return ys
 
 
+class Generator(nn.Module):
+    "Define standard linear + softmax generation step."
+    def __init__(self, d_model, vocab):
+        super(Generator, self).__init__()
+        self.proj = nn.Sequential(
+            nn.Linear(d_model, vocab),
+            nn.Dropout(0.1)
+            )
+
+    def forward(self, x):
+        return F.log_softmax(self.proj(x), dim=-1)
 
 
     

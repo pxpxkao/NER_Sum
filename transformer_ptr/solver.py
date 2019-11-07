@@ -14,7 +14,7 @@ class Solver():
         self.args = args
         self.data_utils = data_utils(args)
 
-        self.model = self.make_model(self.data_utils.vocab_size, self.data_utils.vocab_size, 6)
+        self.model = self.make_model(self.data_utils.vocab_size, self.data_utils.vocab_size, 4)
 
         self.model_dir = make_save_dir(args.model_dir)
 
@@ -54,11 +54,16 @@ class Solver():
         for step in range(1000000):
             self.model.train()
             batch = data_yielder.__next__()
-            out = self.model.forward(batch['src'].long(), batch['tgt'].long(), 
+            if True:
+                batch['src'] = batch['src'].long().cuda()
+                batch['tgt'] = batch['tgt'].long().cuda()
+                batch['src_mask'] = batch['src_mask'].cuda()
+                batch['tgt_mask'] = batch['tgt_mask'].cuda()
+            out = self.model.forward(batch['src'], batch['tgt'], 
                             batch['src_mask'], batch['tgt_mask'])
-            pred = out.topk(1, dim=-1)[1].squeeze().detach().cpu().numpy()
-            gg = batch['src'].long().detach().cpu().numpy()
-            tt = batch['tgt'].long().detach().cpu().numpy()
+            pred = out.topk(1, dim=-1)[1].squeeze().detach().cpu().numpy()[0]
+            gg = batch['src'].long().detach().cpu().numpy()[0][:200]
+            tt = batch['tgt'].long().detach().cpu().numpy()[0]
             yy = batch['y'].long().detach().cpu().numpy()
             loss = self.model.loss_compute(out, batch['y'].long())
             loss.backward()
@@ -70,9 +75,9 @@ class Solver():
                 elapsed = time.time() - start
                 print("Epoch Step: %d Loss: %f Time: %f" %
                         (step, np.mean(total_loss), elapsed))
-                print('src:',self.data_utils.id2sent(gg[0]))
-                print('tgt:',self.data_utils.id2sent(tt[0]))
-                print('pred:',self.data_utils.id2sent(pred[0]))
+                print('src:',self.data_utils.id2sent(gg))
+                print('tgt:',self.data_utils.id2sent(tt))
+                print('pred:',self.data_utils.id2sent(pred))
 
 
                 pp =  self.model.greedy_decode(batch['src'].long()[:1], batch['src_mask'][:1], 14, self.data_utils.bos)
@@ -84,14 +89,14 @@ class Solver():
                 total_loss = []
 
 
-            if step % 10000 == 0:
-                print('saving!!!!')
-                
-                model_name = 'model.pth'
-                state = {'step': step, 'state_dict': self.model.state_dict()}
-                #state = {'step': step, 'state_dict': self.model.state_dict(),
-                #    'optimizer' : optim_topic_gen.state_dict()}
-                torch.save(state, os.path.join(self.model_dir, model_name))
+            #if step % 10000 == 0:
+            #    print('saving!!!!')
+            #    
+            #    model_name = 'model.pth'
+            #    state = {'step': step, 'state_dict': self.model.state_dict()}
+            #    #state = {'step': step, 'state_dict': self.model.state_dict(),
+            #    #    'optimizer' : optim_topic_gen.state_dict()}
+            #    torch.save(state, os.path.join(self.model_dir, model_name))
 
             if step % 100000 == 0:
                 print('saving!!!!')
