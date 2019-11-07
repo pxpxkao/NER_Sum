@@ -120,6 +120,7 @@ class data_utils():
 
         self.vocab_size = len(self.word2id)
         print('vocab_size:',self.vocab_size)
+        print('label_size:', len(self.label2id))
         self.eos = self.word2id['__EOS__']
         self.bos = self.word2id['__BOS__']
 
@@ -163,7 +164,7 @@ class data_utils():
             start_time = time.time()
             print("start epo %d" % (epo))
             for line1, line2 in zip(open(os.path.join(data_dir, 'train.txt')), open(os.path.join(data_dir, 'label.txt'))):
-                vec1 = self.text2id(line1.strip(), 45)
+                vec1 = self.text2id(line1.lower().strip(), 45)
                 vec2 = self.labeltext2id(line2.strip(), 45)
 
                 if vec1 is not None and vec2 is not None:
@@ -219,6 +220,9 @@ class data_utils():
         #print(indices.size())
         for index in indices:
             # print(index)
+            if index >= 8:
+                print(index)
+                print('fuck')
             sent.append(self.index2label[index])
 
             
