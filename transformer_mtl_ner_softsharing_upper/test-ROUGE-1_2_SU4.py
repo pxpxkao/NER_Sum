@@ -16,6 +16,7 @@ for i in range(len(summary)):
     summary[i] = [summary[i].strip()]
     reference[i] = [[reference[i].strip()]]
 print(len(summary))
+print(len(reference))
 #summary = summary[1:1000]
 #reference = reference[1:1000]
 
