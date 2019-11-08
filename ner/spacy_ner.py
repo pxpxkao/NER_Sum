@@ -26,7 +26,7 @@ with open(args[2], 'r') as fp:
 print(len(summary))
 
 import spacy
-nlp = spacy.load('en_core_web_sm')
+nlp = spacy.load('en_core_web_lg')
 
 # text = ["He works at Google.", "France is in Europe"]
 label_count = {}
