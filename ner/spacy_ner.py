@@ -1,5 +1,5 @@
 import sys
-import json
+import json, pickle
 
 def read_json(filename):
     with open(filename, 'r') as fp:
@@ -10,6 +10,15 @@ def write_json(filename,data):
     with open(filename, 'w') as fp:
         json.dump(data, fp)
 
+def read_pickle(filename):
+    with open(filename, 'rb') as fp:
+        data = pickle.load(fp)
+    return data
+
+def write_pickle(filename,data):
+    with open(filename, 'wb') as fp:
+        pickle.dump(data, fp)
+
 args = sys.argv
 
 with open(args[2], 'r') as fp:
@@ -17,25 +26,24 @@ with open(args[2], 'r') as fp:
 print(len(summary))
 
 import spacy
-nlp = spacy.load('en_core_web_lg')
-# text = "marseille , france -lrb- cnn -rrb- the french prosecutor leading an investigation into the crash of germanwings flight 9525 insisted wednesday that he was not aware of any video footage from on board the plane . "
-# doc = nlp(text)
-# spacy.displacy.serve(doc, style='ent')
-# for token in doc.ents:
-#     print(token.text, token.label_)
+nlp = spacy.load('en_core_web_sm')
 
+# text = ["He works at Google.", "France is in Europe"]
 label_count = {}
 label_map = {}
 ner_map = {}
-for idx, s in enumerate(summary):
-    print(idx)
+for s_idx, s in enumerate(summary):
+    print(s_idx)
     doc = nlp(s)
-    ner_list = {}
-    for token in doc.ents:
-        ner_list[token.text] = token.label_
-        label_count[token.label_] = label_count.get(token.label_,0) + 1
-    ner_map['P'+str(idx)] = ner_list
+    ner_list = []
+    for token_idx, token in enumerate(doc):     
+        if token.ent_type_:
+            print(token.ent_type_)
+            ner_list.append((token_idx, token.text, token.ent_iob_, token.ent_type_))
+            label_count[token.ent_type_] = label_count.get(token.ent_type_,0) + 1
+    ner_map['P'+str(s_idx)] = ner_list
 
+# label_map['O'] = len(label_map)
 for key, value in label_count.items():
     label_map[key] = len(label_map)
 
@@ -45,3 +53,14 @@ if(args[1] == '-test_data'):
     write_json('test.ner.map', ner_map)
 write_json('label.map', label_map)
 
+
+# text = "He works at Google."
+# doc = nlp(text)
+# spacy.displacy.serve(doc, style='ent')
+# for token in doc.ents:
+#     print(token.text, token.label_)
+
+# I – Token is inside an entity.
+# O – Token is outside an entity.
+# B – Token is the beginning of an entity.
+# [doc[0].text, doc[0].ent_iob_, doc[0].ent_type_]
