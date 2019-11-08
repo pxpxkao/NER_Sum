@@ -38,7 +38,6 @@ for s_idx, s in enumerate(summary):
     ner_list = []
     for token_idx, token in enumerate(doc):     
         if token.ent_type_:
-            print(token.ent_type_)
             ner_list.append((token_idx, token.text, token.ent_iob_, token.ent_type_))
             label_count[token.ent_type_] = label_count.get(token.ent_type_,0) + 1
     ner_map['P'+str(s_idx)] = ner_list
