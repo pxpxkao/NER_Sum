@@ -20,7 +20,7 @@ ner = []
 label_count = {}
 for s_idx, s in enumerate(summary):
     print(s_idx)
-    if s%10000 == 0:
+    if s_idx%100 == 0:
         write_file('ner.src', text)
         write_file('ner.tgt', ner)
     doc = nlp(s)
@@ -30,7 +30,6 @@ for s_idx, s in enumerate(summary):
     for token in doc:     
         if token.ent_iob_ != 'O':
             text_list.append(token.text)
-            # l = token.ent_iob_+'-'+token.ent_type_
             ner_list.append(token.ent_type_)
             label_count[token.ent_type_] = label_count.get(token.ent_type_,0) + 1
         else:
