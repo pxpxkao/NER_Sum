@@ -1,4 +1,5 @@
 import sys
+import json
 
 args = sys.argv
 
@@ -42,3 +43,5 @@ label_map = {}
 label_map['O'] = len(label_map)
 for key, value in label_count.items():
     label_map[key] = len(label_map)
+with open('label-index.map', 'w') as fp:
+    json.dump(label_map, fp)
