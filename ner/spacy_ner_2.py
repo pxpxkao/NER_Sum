@@ -20,7 +20,7 @@ ner = []
 label_count = {}
 for s_idx, s in enumerate(summary):
     print(s_idx)
-    if s_idx%100 == 0:
+    if s_idx%10000 == 2:
         write_file('ner.src', text)
         write_file('ner.tgt', ner)
     doc = nlp(s)
