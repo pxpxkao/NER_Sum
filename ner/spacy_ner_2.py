@@ -35,7 +35,7 @@ for s_idx, s in enumerate(summary):
         else:
             text_list.append(token.text)
             ner_list.append('O')
-    text.append(' '.join(text_list)+'\n')
+    text.append(' '.join(text_list))
     ner.append(' '.join(ner_list)+'\n')
 
 if(args[1] == '-train_data'):
