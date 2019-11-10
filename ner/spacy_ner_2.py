@@ -1,0 +1,44 @@
+import sys
+
+args = sys.argv
+
+with open(args[2], 'r') as fp:
+    summary = fp.readlines()
+print(len(summary))
+
+import spacy
+nlp = spacy.load('en_core_web_lg')
+
+def write_file(filename, data):
+    with open(filename, 'w') as f:
+        for t in data:
+            f.write(t)
+
+text = []
+ner = []
+label_count = {}
+for s_idx, s in enumerate(summary):
+    print(s_idx)
+    if s%10000 == 0:
+        write_file('train.ner.src', text)
+        write_file('train.ner.tgt', ner)
+    doc = nlp(s)
+    text_list = []
+    ner_list = []
+    lable_list = []
+    for token in doc:     
+        if token.ent_iob_ != 'O':
+            text_list.append(token.text)
+            # l = token.ent_iob_+'-'+token.ent_type_
+            ner_list.append(token.ent_type_)
+            label_count[token.ent_type_] = label_count.get(token.ent_type_,0) + 1
+        else:
+            text_list.append(token.text)
+            ner_list.append('O')
+    text.append(' '.join(text_list)+'\n')
+    ner.append(' '.join(ner_list)+'\n')
+
+label_map = {}
+label_map['O'] = len(label_map)
+for key, value in label_count.items():
+    label_map[key] = len(label_map)
