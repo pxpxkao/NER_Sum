@@ -21,8 +21,8 @@ label_count = {}
 for s_idx, s in enumerate(summary):
     print(s_idx)
     if s%10000 == 0:
-        write_file('train.ner.src', text)
-        write_file('train.ner.tgt', ner)
+        write_file('ner.src', text)
+        write_file('ner.tgt', ner)
     doc = nlp(s)
     text_list = []
     ner_list = []
@@ -38,6 +38,13 @@ for s_idx, s in enumerate(summary):
             ner_list.append('O')
     text.append(' '.join(text_list)+'\n')
     ner.append(' '.join(ner_list)+'\n')
+
+if(args[1] == '-train_data'):
+    write_file('train.ner.src', text)
+    write_file('train.ner.tgt', ner)
+if(args[1] == '-test_data'):
+    write_file('test.ner.src', text)
+    write_file('test.ner.tgt', ner)
 
 label_map = {}
 label_map['O'] = len(label_map)
