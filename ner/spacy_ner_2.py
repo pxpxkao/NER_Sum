@@ -32,7 +32,7 @@ for s_idx, s in enumerate(summary):
             text_list.append(token.text)
             ner_list.append(token.ent_type_)
             label_count[token.ent_type_] = label_count.get(token.ent_type_,0) + 1
-        else:
+        elif token.text != '\n':
             text_list.append(token.text)
             ner_list.append('O')
     text.append(' '.join(text_list))
