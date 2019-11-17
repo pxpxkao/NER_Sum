@@ -30,9 +30,9 @@ class EncoderDecoder(nn.Module):
     
     def decode(self, memory, src_mask, tgt, tgt_mask, src):
         zeros = torch.zeros([tgt.shape[0], tgt.shape[1], 19]).cuda()
-        print("decode zeros:", zeros.shape)
+        # print("decode zeros:", zeros.shape)
         tgt_embed = torch.cat([self.tgt_embed(tgt), zeros], dim=2)
-        print("tgt_embed:", tgt_embed.shape)
+        # print("tgt_embed:", tgt_embed.shape)
         return self.decoder(tgt_embed, memory, src_mask, tgt_mask, src)
 
     def loss_compute(self, out, y):
