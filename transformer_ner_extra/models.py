@@ -21,15 +21,19 @@ class EncoderDecoder(nn.Module):
         return self.decode(self.encode(src, src_mask, ner), src_mask,
                             tgt, tgt_mask, src)
     
-    def encode(self, src, src_mask, ner, class_num=19):
-        print("src_embed:", self.src_embed(src).shape, self.src_embed(src).dtype)
-        print('ner:', ner.shape, ner.dtype)
-        embed = torch.cat([self.src_embed(src), ner], dim=2)
-        print("embed:", embed.shape)
-        return self.encoder(embed, src_mask)
+    def encode(self, src, src_mask, ner):
+        # print("src_embed:", self.src_embed(src).shape, self.src_embed(src).dtype)
+        # print('ner:', ner.shape, ner.dtype)
+        src_embed = torch.cat([self.src_embed(src), ner], dim=2)
+        # print("src_embed:", src_embed.shape)
+        return self.encoder(src_embed, src_mask)
     
     def decode(self, memory, src_mask, tgt, tgt_mask, src):
-        return self.decoder(self.tgt_embed(tgt), memory, src_mask, tgt_mask, src)
+        zeros = torch.zeros([tgt.shape[0], tgt.shape[1], 19])
+        print("decode zeros:", zeros.shape)
+        tgt_embed = torch.cat([self.tgt_embed(tgt), zeros], dim=2)
+        print("tgt_embed:", tgt_embed.shape)
+        return self.decoder(tgt_embed, memory, src_mask, tgt_mask, src)
 
     def loss_compute(self, out, y):
         true_dist = out.data.clone()

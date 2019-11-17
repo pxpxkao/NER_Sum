@@ -178,8 +178,8 @@ class data_utils():
 
                         if len(batch['src']) == self.batch_size:
                             batch = {k: cc(v) for k, v in batch.items()}
-                            for k, v in batch.items():
-                                print(k, v.shape)
+                            # for k, v in batch.items():
+                            #     print(k, v.shape)
                             torch.cuda.synchronize()
                             vec1 = None
                             vec2 = None
