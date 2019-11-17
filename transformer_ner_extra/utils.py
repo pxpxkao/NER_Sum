@@ -175,9 +175,9 @@ class data_utils():
                         batch['ner'].append(ner)
 
                         if len(batch['src']) == self.batch_size:
+                            batch = {k: cc(v) for k, v in batch.items()}
                             for k, v in batch.items():
                                 print(k, v.shape)
-                            batch = {k: cc(v) for k, v in batch.items()}
                             torch.cuda.synchronize()
                             vec1 = None
                             vec2 = None
