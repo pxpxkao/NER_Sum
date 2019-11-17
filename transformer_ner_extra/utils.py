@@ -146,7 +146,7 @@ class data_utils():
             if i >= seq_length:
                 break
             if ent in self.label2id:
-                ner[i] = [self.label2id[ent]]
+                ner[i] = self.label2id[ent]
             else:
                 assert False, "Ent type not in label2id..."
         return ner
@@ -173,7 +173,7 @@ class data_utils():
                         batch['tgt'].append(np.concatenate([[self.bos],vec2], axis=0)[:-1])
                         batch['tgt_mask'].append(self.subsequent_mask(vec2))
                         batch['y'].append(vec2)
-                        ner_one_hot = torch.zeros(self.batch_size, class_num).scatter_(1, torch.LongTensor(ner), 1)
+                        ner_one_hot = torch.zeros(self.batch_size, class_num).scatter_(1, torch.LongTensor(np.expand_dims(ner, 0)), 1)
                         print("ner_one_hot:", ner_one_hot.shape)
                         batch['ner'].append(ner_one_hot)
 
