@@ -83,7 +83,7 @@ class Solver():
                 print('pred:',self.data_utils.id2sent(pred))
 
 
-                pp =  self.model.greedy_decode(batch['src'].long()[:1], batch['src_mask'][:1], 80, self.data_utils.bos, batch['ner'].long()[:1])
+                pp =  self.model.greedy_decode(batch['src'].long()[:1], batch['src_mask'][:1], 80, self.data_utils.bos, batch['ner'][:1])
                 pp = pp.detach().cpu().numpy()
                 print('pred_greedy:',self.data_utils.id2sent(pp[0]))
                 
