@@ -173,7 +173,9 @@ class data_utils():
                         batch['tgt'].append(np.concatenate([[self.bos],vec2], axis=0)[:-1])
                         batch['tgt_mask'].append(self.subsequent_mask(vec2))
                         batch['y'].append(vec2)
-                        batch['ner'].append(ner)
+                        ner_one_hot = torch.zeros(self.batch_size, class_num).scatter_(1, ner, 1)
+                        print("ner_one_hot:", ner_one_hot.shape)
+                        batch['ner'].append(torch.zeros(self.batch_size, class_num).scatter_(1, ner, 1))
 
                         if len(batch['src']) == self.batch_size:
                             batch = {k: cc(v) for k, v in batch.items()}

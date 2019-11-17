@@ -22,11 +22,8 @@ class EncoderDecoder(nn.Module):
                             tgt, tgt_mask, src)
     
     def encode(self, src, src_mask, ner, class_num=19):
-        print("src_embed:", self.src_embed(src))
-        print(len(src))
-        ner_one_hot = torch.zeros(len(src), class_num).scatter_(1, ner, 1)
-        print("ner_one_hot:", ner_one_hot.shape)
-        embed = np.concatenate((self.src_embed(src), ner_one_hot), axis=2)
+        print("src_embed:", self.src_embed(src).shape)
+        embed = np.concatenate((self.src_embed(src), ner), axis=2)
         print("embed:", embed.shape)
         return self.encoder(embed, src_mask)
     
