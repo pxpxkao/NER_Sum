@@ -23,8 +23,9 @@ class EncoderDecoder(nn.Module):
     
     def encode(self, src, src_mask, ner, class_num=19):
         print("src_embed:", self.src_embed(src).shape, self.src_embed(src).dtype)
-        print('ner:', ner.dtype)
-        embed = torch.cat([self.src_embed(src), ner], dim=2)
+        print('ner:', ner.shape, ner.dtype)
+        #embed = torch.cat([self.src_embed(src), ner], dim=2)
+        embed = self.src_embed(src)
         print("embed:", embed.shape)
         return self.encoder(embed, src_mask)
     
