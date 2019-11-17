@@ -63,7 +63,7 @@ class Solver():
             out = self.model.forward(batch['src'], batch['tgt'], 
                             batch['src_mask'], batch['tgt_mask'], batch['ner'])
             pred = out.topk(1, dim=-1)[1].squeeze().detach().cpu().numpy()[0]
-            gg = batch['src'].long().detach().cpu().numpy()[0][:200]
+            gg = batch['src'].long().detach().cpu().numpy()[0][:80]
             tt = batch['tgt'].long().detach().cpu().numpy()[0]
             yy = batch['y'].long().detach().cpu().numpy()
             loss = self.model.loss_compute(out, batch['y'].long())
