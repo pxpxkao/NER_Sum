@@ -57,8 +57,8 @@ class EncoderDecoder(nn.Module):
     #     return ys
 
 
-    def greedy_decode(self, src, src_mask, max_len, start_symbol):
-        memory = self.encode(src, src_mask)
+    def greedy_decode(self, src, src_mask, max_len, start_symbol, ner):
+        memory = self.encode(src, src_mask, ner)
 
         #print(memory.size())
         #print(src.size())

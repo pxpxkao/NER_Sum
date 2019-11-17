@@ -59,8 +59,9 @@ class Solver():
                 batch['tgt'] = batch['tgt'].long().cuda()
                 batch['src_mask'] = batch['src_mask'].cuda()
                 batch['tgt_mask'] = batch['tgt_mask'].cuda()
+                batch['ner'] = batch['ner'].long().cuda()
             out = self.model.forward(batch['src'], batch['tgt'], 
-                            batch['src_mask'], batch['tgt_mask'])
+                            batch['src_mask'], batch['tgt_mask'], batch['ner'])
             pred = out.topk(1, dim=-1)[1].squeeze().detach().cpu().numpy()[0]
             gg = batch['src'].long().detach().cpu().numpy()[0][:200]
             tt = batch['tgt'].long().detach().cpu().numpy()[0]
@@ -80,7 +81,7 @@ class Solver():
                 print('pred:',self.data_utils.id2sent(pred))
 
 
-                pp =  self.model.greedy_decode(batch['src'].long()[:1], batch['src_mask'][:1], 14, self.data_utils.bos)
+                pp =  self.model.greedy_decode(batch['src'].long()[:1], batch['src_mask'][:1], 80, self.data_utils.bos, batch['ner'].long()[:1])
                 pp = pp.detach().cpu().numpy()
                 print('pred_greedy:',self.data_utils.id2sent(pp[0]))
                 
