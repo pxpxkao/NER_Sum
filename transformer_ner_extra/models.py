@@ -22,7 +22,7 @@ class EncoderDecoder(nn.Module):
                             tgt, tgt_mask, src)
     
     def encode(self, src, src_mask, ner, class_num=19):
-        print("src_embed:", self.src_embed(src).shape)
+        print("src_embed:", self.src_embed(src).shape, self.src_embed(src).dtype)
         print('ner:', ner.dtype)
         embed = torch.cat([self.src_embed(src), ner], dim=2)
         print("embed:", embed.shape)

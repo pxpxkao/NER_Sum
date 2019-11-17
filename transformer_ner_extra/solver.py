@@ -59,7 +59,7 @@ class Solver():
                 batch['tgt'] = batch['tgt'].long().cuda()
                 batch['src_mask'] = batch['src_mask'].cuda()
                 batch['tgt_mask'] = batch['tgt_mask'].cuda()
-                batch['ner'] = batch['ner'].long().cuda()
+                batch['ner'] = batch['ner'].cuda()
             out = self.model.forward(batch['src'], batch['tgt'], 
                             batch['src_mask'], batch['tgt_mask'], batch['ner'])
             pred = out.topk(1, dim=-1)[1].squeeze().detach().cpu().numpy()[0]

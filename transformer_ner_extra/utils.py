@@ -174,7 +174,7 @@ class data_utils():
                         batch['tgt_mask'].append(self.subsequent_mask(vec2))
                         batch['y'].append(vec2)
                         ner_one_hot = torch.zeros(256, class_num).scatter_(1, torch.LongTensor(np.expand_dims(ner, 1)), 1)
-                        batch['ner'].append(ner_one_hot.numpy().astype(np.float32))
+                        batch['ner'].append(ner_one_hot.numpy())
 
                         if len(batch['src']) == self.batch_size:
                             batch = {k: cc(v) for k, v in batch.items()}
