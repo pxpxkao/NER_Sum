@@ -27,13 +27,14 @@ class Solver():
             attn = MultiHeadedAttention(h, d_model)
             ff = PositionwiseFeedForward(d_model, d_ff, dropout)
             position = PositionalEncoding(d_model, dropout)
-            word_embed = nn.Sequential(Embeddings(d_model, src_vocab), c(position))
+            word_embed = nn.Sequential(Embeddings(d_model-class_num, src_vocab), c(position))
+            decode_word_embed = nn.Sequential(Embeddings(d_model, src_vocab), c(position))
             model = EncoderDecoder(
                 Encoder(EncoderLayer(d_model+class_num, c(attn), c(ff), dropout), N),
                 Decoder(DecoderLayer(d_model, c(attn), c(attn), 
                                      c(ff), dropout), N, d_model, tgt_vocab),
                 word_embed,
-                word_embed)
+                decode_word_embed)
             
             # This was important from their code. 
             # Initialize parameters with Glorot / fan_avg.
