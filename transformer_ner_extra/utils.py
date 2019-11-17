@@ -151,7 +151,7 @@ class data_utils():
                 assert False, "Ent type not in label2id..."
         return ner
 
-    def data_yielder(self, src_file, tgt_file, ner_file, num_epoch = 100):
+    def data_yielder(self, src_file, tgt_file, ner_file, num_epoch = 100, class_num=19):
         print(src_file)
         print(tgt_file)
         print(ner_file)
