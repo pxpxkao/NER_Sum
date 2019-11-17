@@ -178,7 +178,6 @@ class data_utils():
                         batch['ner'].append(ner_one_hot.numpy())
 
                         if len(batch['src']) == self.batch_size:
-                            print(batch['ner'].shape)
                             batch = {k: cc(v) for k, v in batch.items()}
                             for k, v in batch.items():
                                 print(k, v.shape)
