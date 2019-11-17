@@ -44,7 +44,7 @@ class Solver():
 
 
     def train(self):
-        data_yielder = self.data_utils.data_yielder(self.args.train_file, self.args.tgt_file)
+        data_yielder = self.data_utils.data_yielder(self.args.train_file, self.args.tgt_file, self.args.ner_tgt_file)
         optim = torch.optim.Adam(self.model.parameters(), lr=1e-4, betas=(0.9, 0.98), eps=1e-9)#get_std_opt(self.model)
         total_loss = []
         start = time.time()
