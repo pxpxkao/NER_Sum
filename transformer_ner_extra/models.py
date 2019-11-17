@@ -24,8 +24,7 @@ class EncoderDecoder(nn.Module):
     def encode(self, src, src_mask, ner, class_num=19):
         print("src_embed:", self.src_embed(src).shape, self.src_embed(src).dtype)
         print('ner:', ner.shape, ner.dtype)
-        #embed = torch.cat([self.src_embed(src), ner], dim=2)
-        embed = self.src_embed(src)
+        embed = torch.cat([self.src_embed(src), ner], dim=2)
         print("embed:", embed.shape)
         return self.encoder(embed, src_mask)
     
@@ -118,8 +117,8 @@ class Decoder(nn.Module):
         # print(memory.size())
         # print(src_mask.size())
         # print(tgt_mask.size())
-        index = src;
-        p_gen = 0.2;
+        index = src
+        p_gen = 0.2
         #print(index.size())
         for layer in self.layers[:-1]:
             x, _ = layer(x, memory, src_mask, tgt_mask)
