@@ -149,6 +149,7 @@ class data_utils():
                 ner[i] = self.label2id[ent]
             else:
                 assert False, "Ent type not in label2id..."
+        return ner
 
     def data_yielder(self, src_file, tgt_file, ner_file, num_epoch = 100):
         print(src_file)
@@ -166,7 +167,7 @@ class data_utils():
                     vec1 = self.text2id(line1.strip(), src_length)
                     vec2 = self.text2id(line2.strip(), tgt_length)
                     ner = self.ent2id(line3.strip(), src_length)
-                    if vec1 is not None and vec2 is not None:
+                    if vec1 is not None and vec2 is not None and ner is not None:
                         batch['src'].append(vec1)
                         batch['src_mask'].append(np.expand_dims(vec1 != self.eos, -2).astype(np.float))
                         batch['tgt'].append(np.concatenate([[self.bos],vec2], axis=0)[:-1])
