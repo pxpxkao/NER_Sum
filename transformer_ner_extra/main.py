@@ -9,7 +9,7 @@ def parse():
     parser.add_argument('-train_file',default='../../data/cnndm/train.txt.src',help='data dir')
     parser.add_argument('-tgt_file',default='../../data/cnndm/train.txt.tgt.tagged',help='data dir')
     parser.add_argument('-test_file',default='../../data/cnndm/test.txt.src',help='data dir')
-    parser.add_argument('-ner_tgt_file',default='../data/ents/train.ner.tgt',help='data dir')
+    parser.add_argument('-ner_tgt_file',default='../../data/ents/train.ner.tgt',help='data dir')
     parser.add_argument('-load', default='./train_model/40w_model.pth', help= 'load: model_dir', dest= 'load_model')
     parser.add_argument('-train', action='store_true',help='whether train whole model')
     parser.add_argument('-test', action='store_true',help='whether test')

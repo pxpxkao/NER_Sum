@@ -16,13 +16,19 @@ class EncoderDecoder(nn.Module):
         self.src_embed = src_embed
         self.tgt_embed = tgt_embed
         
-    def forward(self, src, tgt, src_mask, tgt_mask):
+    def forward(self, src, tgt, src_mask, tgt_mask, ner):
         "Take in and process masked src and target sequences."
-        return self.decode(self.encode(src, src_mask), src_mask,
+        return self.decode(self.encode(src, src_mask, ner), src_mask,
                             tgt, tgt_mask, src)
     
-    def encode(self, src, src_mask):
-        return self.encoder(self.src_embed(src), src_mask)
+    def encode(self, src, src_mask, ner, class_num=19):
+        print("src_embed:", self.src_embed(src))
+        print(len(src))
+        ner_one_hot = torch.zeros(len(src), class_num).scatter_(1, ner, 1)
+        print("ner_one_hot:", ner_one_hot.shape)
+        embed = np.concatenate((self.src_embed(src), ner_one_hot), axis=2)
+        print("embed:", embed.shape)
+        return self.encoder(embed, src_mask)
     
     def decode(self, memory, src_mask, tgt, tgt_mask, src):
         return self.decoder(self.tgt_embed(tgt), memory, src_mask, tgt_mask, src)

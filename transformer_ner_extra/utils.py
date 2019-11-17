@@ -140,7 +140,7 @@ class data_utils():
 
     def ent2id(self, ents, seq_length):
         ner = np.zeros([seq_length], dtype=np.int32)
-        ent_list = ents.stript().split()
+        ent_list = ents.strip().split()
         length = len(ent_list)
         for i,ent in enumerate(ent_list):
             if i >= seq_length:
@@ -158,7 +158,7 @@ class data_utils():
         src_length = 256
         tgt_length = 80
         if self.train:
-            batch = {'src':[],'tgt':[],'src_mask':[],'tgt_mask':[],'y':[]}
+            batch = {'src':[],'tgt':[],'src_mask':[],'tgt_mask':[],'y':[], 'ner':[]}
             for epo in range(num_epoch):
                 start_time = time.time()
                 print("start epo %d" % (epo))
@@ -172,6 +172,7 @@ class data_utils():
                         batch['tgt'].append(np.concatenate([[self.bos],vec2], axis=0)[:-1])
                         batch['tgt_mask'].append(self.subsequent_mask(vec2))
                         batch['y'].append(vec2)
+                        batch['ner'].append(ner)
 
                         if len(batch['src']) == self.batch_size:
                             for k, v in batch.items():
@@ -181,7 +182,7 @@ class data_utils():
                             vec1 = None
                             vec2 = None
                             yield batch
-                            batch = {'src':[],'tgt':[],'src_mask':[],'tgt_mask':[],'y':[]}
+                            batch = {'src':[],'tgt':[],'src_mask':[],'tgt_mask':[],'y':[], 'ner':[]}
                 end_time = time.time()
                 print('finish epo %d, time %f' % (epo,end_time-start_time))
 
