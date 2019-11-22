@@ -87,7 +87,8 @@ class data_utils():
         dict_path = './dictionary.json'
         self.train_path = args.train_file
         self.target_path = args.tgt_file
-        self.ner_path = args.ner_tgt_file
+        self.train_ner_path = args.train_ner_tgt_file
+        self.test_ner_path = args.test_ner_tgt_file
         label_idx_path = '../../data/ents/label-index.map'
 
         if os.path.exists(label_idx_path):
@@ -183,30 +184,36 @@ class data_utils():
                             torch.cuda.synchronize()
                             vec1 = None
                             vec2 = None
+                            ner = None
                             yield batch
                             batch = {'src':[],'tgt':[],'src_mask':[],'tgt_mask':[],'y':[], 'ner':[]}
                 end_time = time.time()
                 print('finish epo %d, time %f' % (epo,end_time-start_time))
 
         else:
-            batch = {'src':[], 'src_mask':[]}
+            batch = {'src':[], 'src_mask':[], 'ner':[]}
             for epo in range(1):
                 start_time = time.time()
                 print("start epo %d" % (epo))
                 index = 0
-                for line1 in open(src_file):
+                for line1,line2 in zip(open(src_file),open(ner_file)):
                     index += 1
-                    vec1 = self.text2id(line1.strip(), 80)
+                    vec1 = self.text2id(line1.strip(), src_length)
+                    ner = self.ent2id(line2.strip(), src_length)
                     
-                    if vec1 is not None:
+                    if vec1 is not None and ner is not None:
                         batch['src'].append(vec1)
                         batch['src_mask'].append(np.expand_dims(vec1 != self.eos, -2).astype(np.float))
+                        ner_one_hot = torch.zeros(256, class_num).scatter_(1, torch.LongTensor(np.expand_dims(ner, 1)), 1)
+                        batch['ner'].append(ner_one_hot.numpy())
 
                         if len(batch['src']) == self.batch_size or index >= 1951:
                             batch = {k: cc(v) for k, v in batch.items()}
                             torch.cuda.synchronize()
+                            vec1 = None
+                            ner = None
                             yield batch
-                            batch = {'src':[], 'src_mask':[]}
+                            batch = {'src':[], 'src_mask':[], 'ner':[]}
                 end_time = time.time()
                 print('finish epo %d, time %f' % (epo,end_time-start_time))
 

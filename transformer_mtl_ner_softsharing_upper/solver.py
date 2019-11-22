@@ -11,19 +11,19 @@ from attention import *
 
 import logging
 
-logger = logging.getLogger('ner_sum')
-logger.setLevel(logging.INFO)
-
-log_dir = make_save_dir('./log/')
-hdr = logging.FileHandler('./log/train.log')
-formatter = logging.Formatter('[%(asctime)s] %(name)s:%(levelname)s: %(message)s')
-hdr.setFormatter(formatter)
-
-logger.addHandler(hdr)
-
 class Solver():
     def __init__(self, args):
         self.args = args
+
+        logger = logging.getLogger('ner_sum')
+        logger.setLevel(logging.INFO)
+        log_dir = make_save_dir('./log/')
+        hdr = logging.FileHandler('./log/train.log')
+        formatter = logging.Formatter('[%(asctime)s] %(name)s:%(levelname)s: %(message)s')
+        hdr.setFormatter(formatter)
+        logger.addHandler(hdr)
+        self.logger = logger
+
         self.data_utils = data_utils(args, logger)
 
         self.model = self.make_model(self.data_utils.vocab_size, self.data_utils.vocab_size)
@@ -93,7 +93,9 @@ class Solver():
         # model = self.load_ner(self.model, "../ner/transformer-ner/train_model/model_30.pth")
         
         max_len = self.args.max_len
+        ner_optim = torch.optim.Adam(self.model.parameters(), lr=5e-5, betas=(0.9, 0.98), eps=1e-9)
         optim = torch.optim.Adam(self.model.parameters(), lr=1e-4, betas=(0.9, 0.98), eps=1e-9)#get_std_opt(self.model)
+
         total_loss = []
         mtl_loss = []
         start = time.time()     
@@ -103,15 +105,8 @@ class Solver():
         for step in range(1000000):
             self.model.train()
             
-            batch_ner = data_yielder_ner.__next__()
-            
-            # logger.info(batch_ner['src'].long().size())
-            # logger.info(batch_ner['src_mask'].size())
-            # logger.info(batch_sum['src'].long().size())
-            # logger.info(batch_sum['src_mask'].size())
-            # logger.info(batch_sum['tgt'].long().size())
-            # logger.info(batch_sum['tgt_mask'].size())
             if step % 20 == 1: # dataset of ner:sum = 14000:280000 = 1:20
+                batch_ner = data_yielder_ner.__next__()
                 optim.zero_grad()
                 out_ner = self.model.forward(batch_ner['src'].long(), 
                                 batch_ner['src_mask'], sum=False)
@@ -121,7 +116,7 @@ class Solver():
 
                 loss = self.model.loss_compute(out_ner, batch_ner['y'].long())
                 loss.backward()
-                optim.step()
+                ner_optim.step()
                 
                 total_loss.append(loss.detach().cpu().numpy())
 

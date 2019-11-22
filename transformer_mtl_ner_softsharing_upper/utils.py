@@ -198,7 +198,7 @@ class data_utils():
             # index = 0
             for line1,line2 in zip(open(self.train_sum_path),open(self.tgt_sum_path)):
                 vec1 = self.text2id(line1.strip(), 256)
-                vec2 = self.text2id(line2.strip(), 100)
+                vec2 = self.text2id(line2.strip(), 80)
 
                 if vec1 is not None and vec2 is not None:
                     batch['src'].append(vec1)
@@ -221,12 +221,11 @@ class data_utils():
         for index in indices:
             if test and (index == self.word2id['__EOS__'] or index in word_dict):
                 continue
-            try:
-                sent.append(self.index2word[index])
-                word_dict[index] = 1
-            except:
-                self.logger.debug("Out of index: %d" % index)
-                print("Out of index: %d" % index)
+            sent.append(self.index2word[index])
+            word_dict[index] = 1
+            # except:
+            #     self.logger.debug("Out of index: %d" % index)
+            #     print("Out of index: %d" % index)
 
         return ' '.join(sent)
     
@@ -235,12 +234,10 @@ class data_utils():
         #print(indices.size())
         for index in indices:
             # print(index)
-            
-            try:
-                sent.append(self.index2label[index])
-            except:
-                self.logger.debug("Label out of index: %d" % index)
-                print("Label out of index: %d" % index)
+            sent.append(self.index2label[index])
+            # except:
+            #     self.logger.debug("Label out of index: %d" % index)
+            #     print("Label out of index: %d" % index)
 
             
         return ' '.join(sent[:-1])
