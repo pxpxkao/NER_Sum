@@ -46,7 +46,7 @@ class Solver():
 
 
     def train(self):
-        data_yielder = self.data_utils.data_yielder(self.args.train_file, self.args.tgt_file, self.args.ner_tgt_file)
+        data_yielder = self.data_utils.data_yielder(self.args.train_file, self.args.tgt_file, self.args.train_ner_tgt_file)
         optim = torch.optim.Adam(self.model.parameters(), lr=1e-4, betas=(0.9, 0.98), eps=1e-9)#get_std_opt(self.model)
         total_loss = []
         start = time.time()
@@ -122,7 +122,7 @@ class Solver():
         filename = self.args.filename
 
         #start decoding
-        data_yielder = self.data_utils.data_yielder(self.args.test_file, self.args.test_file)
+        data_yielder = self.data_utils.data_yielder(self.args.test_file, self.args.test_file, self.args.test_ner_tgt_file)
         total_loss = []
         start = time.time()
 
@@ -133,7 +133,7 @@ class Solver():
 
         for batch in data_yielder:
             #print(batch['src'].data.size())
-            out = self.model.greedy_decode(batch['src'].long(), batch['src_mask'], max_len, self.data_utils.bos)
+            out = self.model.greedy_decode(batch['src'].long(), batch['src_mask'], max_len, self.data_utils.bos, batch['ner'])
             #print(out)
             for l in out:
                 sentence = self.data_utils.id2sent(l[1:], True)
