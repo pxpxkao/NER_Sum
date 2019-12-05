@@ -39,15 +39,14 @@ for s_idx, s in enumerate(summary):
     ner.append(' '.join(ner_list)+'\n')
 
 if(args[1] == '-train_data'):
-    write_file('train.ner.src', text)
     write_file('train.ner.tgt', ner)
 if(args[1] == '-test_data'):
-    write_file('test.ner.src', text)
     write_file('test.ner.tgt', ner)
 
 label_map = {}
 label_map['O'] = len(label_map)
 for key, value in label_count.items():
     label_map[key] = len(label_map)
-with open('label-index.map', 'w') as fp:
-    json.dump(label_map, fp)
+print(label_map)
+# with open('label-index.map', 'w') as fp:
+#     json.dump(label_map, fp)
