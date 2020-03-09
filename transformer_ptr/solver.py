@@ -52,6 +52,7 @@ class Solver():
         self.data_utils = data_utils(args)
 
         self.model = self.make_model(self.data_utils.vocab_size, self.data_utils.vocab_size, args.num_layer, args.dropout)
+        print(self.model)
         if self.args.train:
             self.outfile = open(self.args.logfile, 'w')
             self.model_dir = make_save_dir(args.model_dir)
@@ -136,7 +137,7 @@ class Solver():
                 print('pred:\n',self.data_utils.id2sent(pred, False, False, batch['oov_list']))
                 print('oov_list:\n', batch['oov_list'])
 
-                pp =  self.model.greedy_decode(batch['src_extended'].long()[:1], batch['src_mask'][:1], 80, self.data_utils.bos, len(batch['oov_list']), self.data_utils.vocab_size)
+                pp =  self.model.greedy_decode(batch['src_extended'].long()[:1], batch['src_mask'][:1], 100, self.data_utils.bos, len(batch['oov_list']), self.data_utils.vocab_size)
                 pp = pp.detach().cpu().numpy()
                 print('pred_greedy:\n',self.data_utils.id2sent(pp[0], False, False, batch['oov_list']))
                 
@@ -145,10 +146,25 @@ class Solver():
                 self.log.add_scalar('Loss/train', np.mean(total_loss), step)
                 total_loss = []
                 
+            
+            # if step % 50000 == 1:
+                
+            if step % 100000 == 2:
+                batch['src'] = batch['src'].detach().cpu()
+                batch['y'] = batch['y'].detach().cpu()
+                batch['src_extended'] = batch['src_extended'].detach().cpu()
+                batch['src_mask'] = batch['src_mask'].detach().cpu()
+                batch['tgt'] = batch['tgt'].detach().cpu()
+                batch['tgt_mask'] = batch['tgt_mask'].detach().cpu()
+                del batch['src']
+                del batch['src_extended']
+                del batch['tgt']
+                del batch['y']
+                del batch['src_mask']
+                del batch['tgt_mask']
 
-            if step % 50000 == 1:
-                val_yielder = self.data_utils.data_yielder(self.args.valid_file, self.args.valid_tgt_file, 1)
                 self.model.eval()
+                val_yielder = self.data_utils.data_yielder(self.args.valid_file, self.args.valid_tgt_file, 1)
                 total_loss = []
                 for batch in val_yielder:
                     batch['src'] = batch['src'].long()
@@ -165,16 +181,15 @@ class Solver():
                 self.outfile.write('=============================================\n')
                 self.outfile.write('Validation Result -> Loss : %6.6f\n' %(sum(total_loss)/len(total_loss)))
                 self.outfile.write('=============================================\n')
-                self.model.train()
+                # self.model.train()
                 self.log.add_scalar('Loss/valid', sum(total_loss)/len(total_loss), step)
-            if step % 100000 == 0:
-                
+                batch = None
                 w_step = int(step/100000)
                 if self.args.load_model:
                     w_step += (int(self.args.load_model.split('/')[-1][0]))
                 print('Saving ' + str(w_step) + '0w_model.pth!\n')
                 self.outfile.write('Saving ' + str(w_step) + '0w_model.pth\n')
-                model_name = str(w_step) + '0w_model.pth'
+                model_name = str(w_step) + '0w_' + '%6.6f'%(sum(total_loss)/len(total_loss)) + 'model.pth'
                 state = {'step': step, 'state_dict': self.model.state_dict()}
 
                 torch.save(state, os.path.join(self.model_dir, model_name))
