@@ -32,7 +32,8 @@ class EncoderDecoder(nn.Module):
         true_dist.fill_(0.)
         true_dist.scatter_(2, y.unsqueeze(2), 1.)
         true_dist[:,:,0] *= 0.01
-        return -(true_dist*out).sum(dim=2).mean()
+
+        return -(true_dist*torch.log(out)).sum(dim=2).mean()
         #return -torch.gather(out, 2, y.unsqueeze(2)).squeeze(2).mean()
 
 
@@ -58,6 +59,12 @@ class EncoderDecoder(nn.Module):
         #print(src.size())
         ys = torch.zeros(src.size()[0], 1).type_as(src.data) + start_symbol
         for i in range(max_len-1):
+            # print('==============')
+            # print(ys.size())
+            # print(subsequent_mask(ys.size(1))
+            #                             .type_as(src.data).expand((ys.size(0), ys.size(1), ys.size(1))).size())
+            # print(subsequent_mask(ys.size(1))
+            #                             .type_as(src.data).expand((ys.size(0), ys.size(1), ys.size(1))))
             log_prob = self.decode(memory, src_mask, 
                                Variable(ys), 
                                Variable(subsequent_mask(ys.size(1))
@@ -102,38 +109,68 @@ class Encoder(nn.Module):
 
 class Decoder(nn.Module):
     "Generic N layer decoder with masking."
-    def __init__(self, layer, N, d_model, vocab):
+    def __init__(self, layer, N, d_model, vocab, pointer_gen):
         super(Decoder, self).__init__()
         self.layers = clones(layer, N)
         self.norm = LayerNorm(layer.size)
         self.proj = nn.Linear(d_model, vocab)
-        
+        if pointer_gen:
+            print('pointer_gen')
+            self.bptr = nn.Parameter(torch.FloatTensor(1, 1))
+            self.Wh = nn.Linear(d_model, 1)
+            self.Ws = nn.Linear(d_model, 1)
+            self.Wx = nn.Linear(d_model, 1)
+            self.pointer_gen = True
+        else:
+            self.pointer_gen = False
+        self.sm = nn.Softmax(dim = -1)        
     def forward(self, x, memory, src_mask, tgt_mask, src):
-        # print(x.size())
-        # print(memory.size())
-        # print(src_mask.size())
-        # print(tgt_mask.size())
-        index = src;
-        p_gen = 0.2;
-        #print(index.size())
+
+        # σ(w>h ht* + w>s st + w>x xt + bptr)
+        #memory                     [batch, src_len, d_model]
+        #x_t                        [batch, dec_len, d_model]
+        #s_t                        [batch, dec_len, d_model]
+        #attn_weights               [batch, dec_len, src_len]  16, 100, 400
+        #h_t = memory * attn_dist   [batch, dec_len, d_model]
+
+        # every decoder step needs a p_gen -> p_gen   [batch, dec_len]
+        if self.pointer_gen:
+            index = src
+            x_t = x 
         for layer in self.layers[:-1]:
             x, _ = layer(x, memory, src_mask, tgt_mask)
         x, attn_weights = self.layers[-1](x, memory, src_mask, tgt_mask)
-        # print(x[:, :, 0])
         dec_dist = self.proj(self.norm(x))
-        # print(dec_dist.size())
-        # print(dec_dist[:, :, :5])
-        index = index.unsqueeze(1).expand_as(attn_weights)
-        enc_attn_dist = Variable(torch.zeros(dec_dist.size())).cuda().scatter_(-1, index, attn_weights)
+        
+        if self.pointer_gen:
+            s_t = x
+            h_t = torch.bmm(attn_weights, memory)  #context vector
+            p_gen = self.Wh(h_t) + self.Ws(s_t) + self.Wx(x_t) + self.bptr.expand_as(self.Wh(h_t))
+            p_gen = torch.sigmoid(p_gen)
+            index = index.unsqueeze(1).expand_as(attn_weights)
+            enc_attn_dist = Variable(torch.zeros(dec_dist.size())).cuda().scatter_add_(dim = -1, index= index, src=attn_weights)
+            # print('==========================')
+            # print('attn_weights', attn_weights.sum(dim = -1)[0][0])
+            # print('attn_weights', attn_weights.sum(dim = -1)[0][1])
+            # print('attn_weights', attn_weights.size())
+            # print('index', index.size())
+            # print('enc_attn_dist', enc_attn_dist.size())
+            # print('enc_attn_dist_sum', enc_attn_dist.sum(dim = -1)[0][0])
+            # print('enc_attn_dist_sum', enc_attn_dist.sum(dim = -1)[0][1])
+            # print('enc_attn_dist_sum1', enc_attn_dist.sum(dim=-1).size())
+            # print('dec_dist', self.sm(dec_dist).size())
+            # print('dec_sum', self.sm(dec_dist).sum(dim = -1)[0][0])
+            
+            # print('sum', (p_gen * self.sm(dec_dist) + (1-p_gen) * enc_attn_dist).sum(dim=-1)[0][0])
+
         torch.cuda.synchronize()
-        #print(torch.nonzero(enc_attn_dist))
 
-        # attn_weights, index = attn_weights.squeeze(1), index.transpose(0,1)
-        # output, attn_weights = (output * p_gen), attn_weights * (1-p_gen)
-        # output = output.scatter_add_(dim = 1, index = index, src = attn_weights)
-
-        return (1 - p_gen) * F.log_softmax(dec_dist, dim=-1) + p_gen * enc_attn_dist
-        #return F.log_softmax(dec_dist + enc_attn_dist, dim=-1)
+        # print('p_gen * enc_attn_dist', (p_gen * enc_attn_dist).size())
+        # return p_gen * F.log_softmax(dec_dist, dim=-1) + (1-p_gen) * enc_attn_dist
+        if self.pointer_gen:
+            return p_gen * self.sm(dec_dist) + (1-p_gen) * enc_attn_dist
+        else:
+            return self.sm(dec_dist)
 
 
 class EncoderLayer(nn.Module):
@@ -167,4 +204,4 @@ class DecoderLayer(nn.Module):
         #print(attn_dist.size())
         x = self.sublayer[1](x, lambda x: self.src_attn(x, m, m, src_mask)[0])
         #x = self.sublayer[1](x, lambda x: self.src_attn(x, m, m, src_mask))
-        return self.sublayer[2](x, self.feed_forward), attn_dist     
+        return self.sublayer[2](x, self.feed_forward), attn_dist

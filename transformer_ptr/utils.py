@@ -93,7 +93,7 @@ class data_utils():
         if os.path.exists(dict_path):
             self.word2id = read_json(dict_path)
         else:
-            self.word2id = make_dict(25000, dict_path, self.train_path, self.target_path)
+            self.word2id = make_dict(50000, dict_path, self.train_path, self.target_path)
 
         self.index2word = [[]]*len(self.word2id)
         for word in self.word2id:
@@ -103,6 +103,8 @@ class data_utils():
         print('vocab_size:',self.vocab_size)
         self.eos = self.word2id['__EOS__']
         self.bos = self.word2id['__BOS__']
+        self.pad = self.eos
+        # self.pad = self.word2id['__UNK__']
 
 
     def text2id(self, text, seq_length):
@@ -138,8 +140,8 @@ class data_utils():
         print(src_file)
         print(tgt_file)
         print(self.batch_size)
-        src_length = 256
-        tgt_length = 80
+        src_length = 400
+        tgt_length = 100
         if self.train:
             batch = {'src':[],'tgt':[],'src_mask':[],'tgt_mask':[],'y':[]}
             for epo in range(num_epoch):
@@ -175,17 +177,20 @@ class data_utils():
                 index = 0
                 for line1 in open(src_file):
                     index += 1
-                    vec1 = self.text2id(line1.strip(), 80)
+                    vec1 = self.text2id(line1.strip(), 400)
                     
                     if vec1 is not None:
                         batch['src'].append(vec1)
                         batch['src_mask'].append(np.expand_dims(vec1 != self.eos, -2).astype(np.float))
 
-                        if len(batch['src']) == self.batch_size or index >= 1951:
+                        if len(batch['src']) == self.batch_size:
                             batch = {k: cc(v) for k, v in batch.items()}
                             torch.cuda.synchronize()
                             yield batch
                             batch = {'src':[], 'src_mask':[]}
+                batch = {k: cc(v) for k, v in batch.items()}
+                torch.cuda.synchronize()
+                yield batch
                 end_time = time.time()
                 print('finish epo %d, time %f' % (epo,end_time-start_time))
 
@@ -193,15 +198,24 @@ class data_utils():
 
 
 
-    def id2sent(self, indices, test=False):
+    def id2sent(self, indices, test=False, beam_search = False):
+        # print(indices)
         sent = []
         word_dict={}
-        for index in indices:
-            if test and (index == self.word2id['__EOS__'] or index in word_dict):
-                continue
-            sent.append(self.index2word[index])
-            word_dict[index] = 1
-
+        if beam_search:
+            for index in indices:
+                if test and (index == self.word2id['__EOS__'] or index in word_dict):
+                    continue
+                sent.append(self.index2word[index])
+                word_dict[index] = 1
+        else:            
+            for index in indices:
+                if test and (index == self.word2id['__EOS__'] or index.item() in word_dict):
+                    continue
+                sent.append(self.index2word[index.item()])
+            word_dict[index.item()] = 1
+        print(word_dict)
+        print(sent)
         return ' '.join(sent)
 
 

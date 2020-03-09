@@ -7,20 +7,59 @@ import subprocess
 from models import *
 from utils import *
 from attention import *
+from torch.utils.tensorboard import SummaryWriter
+from beam import Beam
+from modules import subsequent_mask
 
 
+def collapse_copy_scores(scores, batch, tgt_vocab, src_vocabs=None,
+                         batch_dim=1, batch_offset=None):
+    """
+    Given scores from an expanded dictionary
+    corresponeding to a batch, sums together copies,
+    with a dictionary word when it is ambiguous.
+    """
+    offset = len(tgt_vocab)
+    for b in range(scores.size(batch_dim)):
+        blank = []
+        fill = []
+
+        if src_vocabs is None:
+            src_vocab = batch.src_ex_vocab[b]
+        else:
+            batch_id = batch_offset[b] if batch_offset is not None else b
+            index = batch.indices.data[batch_id]
+            src_vocab = src_vocabs[index]
+
+        for i in range(1, len(src_vocab)):
+            sw = src_vocab.itos[i]
+            ti = tgt_vocab.stoi[sw]
+            if ti != 0:
+                blank.append(offset + i)
+                fill.append(ti)
+        if blank:
+            blank = torch.Tensor(blank).type_as(batch.indices.data)
+            fill = torch.Tensor(fill).type_as(batch.indices.data)
+            score = scores[:, b] if batch_dim == 1 else scores[b]
+            score.index_add_(1, fill, score.index_select(1, blank))
+            score.index_fill_(1, blank, 1e-10)
+    return scores
+
+    
 class Solver():
     def __init__(self, args):
         self.args = args
         self.data_utils = data_utils(args)
 
-        self.model = self.make_model(self.data_utils.vocab_size, self.data_utils.vocab_size, 4)
+        self.model = self.make_model(self.data_utils.vocab_size, self.data_utils.vocab_size, args.num_layer, args.dropout)
+        if self.args.train:
+            self.outfile = open(self.args.logfile, 'w')
+            self.model_dir = make_save_dir(args.model_dir)
+            self.logfile = os.path.join(args.logdir, args.exp_name)
+            self.log = SummaryWriter(self.logfile)
 
-        self.model_dir = make_save_dir(args.model_dir)
-
-
-    def make_model(self, src_vocab, tgt_vocab, N=6, 
-            d_model=512, d_ff=2048, h=8, dropout=0.1):
+    def make_model(self, src_vocab, tgt_vocab, N=6, dropout=0.1,
+            d_model=512, d_ff=2048, h=8):
             
             "Helper: Construct a model from hyperparameters."
             c = copy.deepcopy
@@ -31,7 +70,7 @@ class Solver():
             model = EncoderDecoder(
                 Encoder(EncoderLayer(d_model, c(attn), c(ff), dropout), N),
                 Decoder(DecoderLayer(d_model, c(attn), c(attn), 
-                                     c(ff), dropout), N, d_model, tgt_vocab),
+                                     c(ff), dropout), N, d_model, tgt_vocab, self.args.pointer_gen),
                 word_embed,
                 word_embed)
             
@@ -44,25 +83,37 @@ class Solver():
 
 
     def train(self):
+
         data_yielder = self.data_utils.data_yielder(self.args.train_file, self.args.tgt_file)
-        optim = torch.optim.Adam(self.model.parameters(), lr=1e-4, betas=(0.9, 0.98), eps=1e-9)#get_std_opt(self.model)
+        optim = torch.optim.Adam(self.model.parameters(), lr=1e-7, betas=(0.9, 0.998), eps=1e-8, amsgrad=True)#get_std_opt(self.model)
         total_loss = []
         start = time.time()
         print('start training...')
+        if self.args.load_model:
+            state_dict = torch.load(self.args.load_model)['state_dict']
+            self.model.load_state_dict(state_dict)
+            print("Loading model from " + self.args.load_model + "...")
+
+        warmup_steps = 10000
+        d_model = 512
+        lr = 1e-7
         #path = torch.load("./train_model/10w_model.pth")
         #self.model.load_state_dict(path, strict = False)
         for step in range(1000000):
             self.model.train()
             batch = data_yielder.__next__()
-            if True:
-                batch['src'] = batch['src'].long().cuda()
-                batch['tgt'] = batch['tgt'].long().cuda()
-                batch['src_mask'] = batch['src_mask'].cuda()
-                batch['tgt_mask'] = batch['tgt_mask'].cuda()
+            if step % 100 == 1:
+                lr = (1/(d_model**0.5))*min((1/step**0.5), step * (1/(warmup_steps**1.5)))
+                for param_group in optim.param_groups:
+                    param_group['lr'] = lr
+                
+            # if True:
+            batch['src'] = batch['src'].long()
+            batch['tgt'] = batch['tgt'].long()
             out = self.model.forward(batch['src'], batch['tgt'], 
                             batch['src_mask'], batch['tgt_mask'])
             pred = out.topk(1, dim=-1)[1].squeeze().detach().cpu().numpy()[0]
-            gg = batch['src'].long().detach().cpu().numpy()[0][:200]
+            gg = batch['src'].long().detach().cpu().numpy()[0][:100]
             tt = batch['tgt'].long().detach().cpu().numpy()[0]
             yy = batch['y'].long().detach().cpu().numpy()
             loss = self.model.loss_compute(out, batch['y'].long())
@@ -73,38 +124,54 @@ class Solver():
             
             if step % 500 == 1:
                 elapsed = time.time() - start
-                print("Epoch Step: %d Loss: %f Time: %f" %
+                print("Epoch Step: %d Loss: %f Time: %f lr: %6.6f" %
+                        (step, np.mean(total_loss), elapsed, optim.param_groups[0]['lr']))
+                self.outfile.write("Epoch Step: %d Loss: %f Time: %f\n" %
                         (step, np.mean(total_loss), elapsed))
                 print('src:',self.data_utils.id2sent(gg))
                 print('tgt:',self.data_utils.id2sent(tt))
                 print('pred:',self.data_utils.id2sent(pred))
 
 
-                pp =  self.model.greedy_decode(batch['src'].long()[:1], batch['src_mask'][:1], 14, self.data_utils.bos)
+                pp =  self.model.greedy_decode(batch['src'].long()[:1], batch['src_mask'][:1], 80, self.data_utils.bos)
                 pp = pp.detach().cpu().numpy()
                 print('pred_greedy:',self.data_utils.id2sent(pp[0]))
                 
                 print()
                 start = time.time()
+                self.log.add_scalar('Loss/train', np.mean(total_loss), step)
                 total_loss = []
-
-
-            #if step % 10000 == 0:
-            #    print('saving!!!!')
-            #    
-            #    model_name = 'model.pth'
-            #    state = {'step': step, 'state_dict': self.model.state_dict()}
-            #    #state = {'step': step, 'state_dict': self.model.state_dict(),
-            #    #    'optimizer' : optim_topic_gen.state_dict()}
-            #    torch.save(state, os.path.join(self.model_dir, model_name))
-
-            if step % 100000 == 0:
-                print('saving!!!!')
                 
-                model_name = str(int(step/100000)) + '0w_model.pth'
+
+            if step % 50000 == 0:
+                val_yielder = self.data_utils.data_yielder(self.args.valid_file, self.args.valid_tgt_file, 1)
+                self.model.eval()
+                total_loss = []
+                for batch in val_yielder:
+                    batch['src'] = batch['src'].long()
+                    batch['tgt'] = batch['tgt'].long()
+                    out = self.model.forward(batch['src'], batch['tgt'], 
+                            batch['src_mask'], batch['tgt_mask'])
+                    loss = self.model.loss_compute(out, batch['y'].long())
+                    total_loss.append(loss.item())
+                print('=============================================')
+                print('Validation Result -> Loss : %6.6f' %(sum(total_loss)/len(total_loss)))
+                print('=============================================')
+                self.outfile.write('=============================================\n')
+                self.outfile.write('Validation Result -> Loss : %6.6f\n' %(sum(total_loss)/len(total_loss)))
+                self.outfile.write('=============================================\n')
+                self.model.train()
+                self.log.add_scalar('Loss/valid', sum(total_loss)/len(total_loss), step)
+            if step % 100000 == 0:
+                
+                w_step = int(step/100000)
+                if self.args.load_model:
+                    w_step += (int(self.args.load_model.split('/')[-1][0]))
+                print('Saving' + str(w_step) + '0w_model.pth')
+                self.outfile.write('Saving ' + str(w_step) + '0w_model.pth\n')
+                model_name = str(w_step) + '0w_model.pth'
                 state = {'step': step, 'state_dict': self.model.state_dict()}
-                #state = {'step': step, 'state_dict': self.model.state_dict(),
-                #    'optimizer' : optim_topic_gen.state_dict()}
+
                 torch.save(state, os.path.join(self.model_dir, model_name))
 
 
@@ -128,13 +195,99 @@ class Solver():
 
         self.model.eval()
 
+        # decode_strategy = BeamSearch(
+        #             self.beam_size,
+        #             batch_size=batch.batch_size,
+        #             pad=self._tgt_pad_idx,
+        #             bos=self._tgt_bos_idx,
+        #             eos=self._tgt_eos_idx,
+        #             n_best=self.n_best,
+        #             global_scorer=self.global_scorer,
+        #             min_length=self.min_length, max_length=self.max_length,
+        #             return_attention=attn_debug or self.replace_unk,
+        #             block_ngram_repeat=self.block_ngram_repeat,
+        #             exclusion_tokens=self._exclusion_idxs,
+        #             stepwise_penalty=self.stepwise_penalty,
+        #             ratio=self.ratio)
+            
+        step = 0
         for batch in data_yielder:
             #print(batch['src'].data.size())
-            out = self.model.greedy_decode(batch['src'].long(), batch['src_mask'], max_len, self.data_utils.bos)
+            step += 1
+            if step % 100 == 0:
+                print('%d batch processed. Time elapsed: %f min.' %(step, (time.time() - start)/60.0))
+                start = time.time()
+            if self.args.beam_size == 1:
+                out = self.model.greedy_decode(batch['src'].long(), batch['src_mask'], max_len, self.data_utils.bos)
+            else:
+                out = self.beam_decode(batch, max_len)
             #print(out)
             for l in out:
-                sentence = self.data_utils.id2sent(l[1:], True)
+                sentence = self.data_utils.id2sent(l[1:], True, self.args.beam_size!=1)
                 #print(l[1:])
                 f.write(sentence)
                 f.write("\n")
 
+
+    def beam_decode(self, batch, max_len):
+
+        bos_token = self.data_utils.bos 
+        beam_size = self.args.beam_size
+
+        src = batch['src'].long()
+        src_mask = batch['src_mask']
+        memory = self.model.encode(src, src_mask)
+        batch_size = src.size(0)
+
+        beam = Beam(self.data_utils.pad, 
+                    bos_token, 
+                    self.data_utils.eos, 
+                    beam_size, 
+                    batch_size,
+                    self.args.n_best,
+                    True,
+                    max_len
+                    )
+
+        ys = torch.full((batch_size, 1), bos_token).type_as(src.data).cuda()
+        log_prob = self.model.decode(memory, src_mask, 
+                           Variable(ys), 
+                           Variable(subsequent_mask(ys.size(1)).type_as(src.data).expand((ys.size(0), ys.size(1), ys.size(1)))), src)
+
+        
+        # log_prob = [batch_size, 1, voc_size]
+        top_prob, top_indices = torch.topk(input = log_prob, k = beam_size, dim = -1)
+        # print(top_indices)
+        top_prob = top_prob.view(-1, 1)
+        top_indices = top_indices.view(-1, 1)
+        beam.update_prob(top_prob.detach().cpu(), top_indices.detach().cpu())
+        # [batch_size, 1, beam_size]
+        ys = top_indices
+        top_indices = None
+        # print(ys.size())
+        ####### repeat var #######
+        src = torch.repeat_interleave(src, beam_size, dim = 0)
+        src_mask = torch.repeat_interleave(src_mask, beam_size, dim = 0)
+        #[batch_size, src_len, d_model] -> [batch_size*beam_size, src_len, d_model]
+        memory = torch.repeat_interleave(memory, beam_size, dim = 0)
+        # print('max_len', max_len)
+        for t in range(1, max_len):
+            log_prob = self.model.decode(memory, src_mask, 
+                               Variable(ys), 
+                               Variable(subsequent_mask(ys.size(1)).type_as(src.data).expand((ys.size(0), ys.size(1), ys.size(1)))), src)
+            # print('log_prob', log_prob.size())
+            log_prob = log_prob[:,-1].unsqueeze(1)
+            # print(beam.seq)
+            real_top = beam.advance(log_prob.detach().cpu())
+            # print(real_top.size())
+            # print(ys.size())
+            # print(real_top.size())
+            ys = torch.cat((ys, real_top.view(-1, 1).cuda()), dim = -1)
+            # print(ys.size())
+
+        # print(ys.size())
+        # print(beam.top_prob)
+        # print(len(beam.seq))
+        print('beam', beam.seq[0])
+
+        return [beam.seq[0]]
