@@ -110,12 +110,15 @@ class Solver():
             # if True:
             batch['src'] = batch['src'].long()
             batch['tgt'] = batch['tgt'].long()
+            batch['src_extended'] = batch['src_extended'].long()
+            # print(batch['oov_list'])
+
             out = self.model.forward(batch['src'], batch['tgt'], 
-                            batch['src_mask'], batch['tgt_mask'])
+                            batch['src_mask'], batch['tgt_mask'], batch['src_extended'], len(batch['oov_list']))
             pred = out.topk(1, dim=-1)[1].squeeze().detach().cpu().numpy()[0]
-            gg = batch['src'].long().detach().cpu().numpy()[0][:100]
+            gg = batch['src_extended'].long().detach().cpu().numpy()[0][:100]
             tt = batch['tgt'].long().detach().cpu().numpy()[0]
-            yy = batch['y'].long().detach().cpu().numpy()
+            yy = batch['y'].long().detach().cpu().numpy()[0]
             loss = self.model.loss_compute(out, batch['y'].long())
             loss.backward()
             optim.step()
@@ -128,14 +131,14 @@ class Solver():
                         (step, np.mean(total_loss), elapsed, optim.param_groups[0]['lr']))
                 self.outfile.write("Epoch Step: %d Loss: %f Time: %f\n" %
                         (step, np.mean(total_loss), elapsed))
-                print('src:',self.data_utils.id2sent(gg))
-                print('tgt:',self.data_utils.id2sent(tt))
-                print('pred:',self.data_utils.id2sent(pred))
+                print('src:\n',self.data_utils.id2sent(gg, False, False, batch['oov_list']))
+                print('tgt:\n',self.data_utils.id2sent(yy, False, False, batch['oov_list']))
+                print('pred:\n',self.data_utils.id2sent(pred, False, False, batch['oov_list']))
+                print('oov_list:\n', batch['oov_list'])
 
-
-                pp =  self.model.greedy_decode(batch['src'].long()[:1], batch['src_mask'][:1], 80, self.data_utils.bos)
+                pp =  self.model.greedy_decode(batch['src_extended'].long()[:1], batch['src_mask'][:1], 80, self.data_utils.bos, len(batch['oov_list']), self.data_utils.vocab_size)
                 pp = pp.detach().cpu().numpy()
-                print('pred_greedy:',self.data_utils.id2sent(pp[0]))
+                print('pred_greedy:\n',self.data_utils.id2sent(pp[0], False, False, batch['oov_list']))
                 
                 print()
                 start = time.time()
@@ -143,15 +146,17 @@ class Solver():
                 total_loss = []
                 
 
-            if step % 50000 == 0:
+            if step % 50000 == 1:
                 val_yielder = self.data_utils.data_yielder(self.args.valid_file, self.args.valid_tgt_file, 1)
                 self.model.eval()
                 total_loss = []
                 for batch in val_yielder:
                     batch['src'] = batch['src'].long()
                     batch['tgt'] = batch['tgt'].long()
+                    batch['src_extended'] = batch['src_extended'].long()
+                    # print(len(batch['oov_list']))
                     out = self.model.forward(batch['src'], batch['tgt'], 
-                            batch['src_mask'], batch['tgt_mask'])
+                            batch['src_mask'], batch['tgt_mask'], batch['src_extended'], len(batch['oov_list']))
                     loss = self.model.loss_compute(out, batch['y'].long())
                     total_loss.append(loss.item())
                 print('=============================================')
@@ -167,7 +172,7 @@ class Solver():
                 w_step = int(step/100000)
                 if self.args.load_model:
                     w_step += (int(self.args.load_model.split('/')[-1][0]))
-                print('Saving' + str(w_step) + '0w_model.pth')
+                print('Saving ' + str(w_step) + '0w_model.pth!\n')
                 self.outfile.write('Saving ' + str(w_step) + '0w_model.pth\n')
                 model_name = str(w_step) + '0w_model.pth'
                 state = {'step': step, 'state_dict': self.model.state_dict()}
@@ -218,24 +223,26 @@ class Solver():
                 print('%d batch processed. Time elapsed: %f min.' %(step, (time.time() - start)/60.0))
                 start = time.time()
             if self.args.beam_size == 1:
-                out = self.model.greedy_decode(batch['src'].long(), batch['src_mask'], max_len, self.data_utils.bos)
+                out = self.model.greedy_decode(batch['src'].long(), batch['src_mask'], max_len, self.data_utils.bos, len(batch['oov_list']), self.data_utils.vocab_size)
             else:
-                out = self.beam_decode(batch, max_len)
+                out = self.beam_decode(batch, max_len, len(batch['oov_list']))
             #print(out)
             for l in out:
-                sentence = self.data_utils.id2sent(l[1:], True, self.args.beam_size!=1)
+                sentence = self.data_utils.id2sent(l[1:], True, self.args.beam_size!=1, batch['oov_list'])
                 #print(l[1:])
                 f.write(sentence)
                 f.write("\n")
 
 
-    def beam_decode(self, batch, max_len):
+    def beam_decode(self, batch, max_len, oov_nums):
 
         bos_token = self.data_utils.bos 
         beam_size = self.args.beam_size
+        vocab_size = self.data_utils.vocab_size
 
         src = batch['src'].long()
         src_mask = batch['src_mask']
+        src_extended = batch['src_extended'].long()
         memory = self.model.encode(src, src_mask)
         batch_size = src.size(0)
 
@@ -252,7 +259,7 @@ class Solver():
         ys = torch.full((batch_size, 1), bos_token).type_as(src.data).cuda()
         log_prob = self.model.decode(memory, src_mask, 
                            Variable(ys), 
-                           Variable(subsequent_mask(ys.size(1)).type_as(src.data).expand((ys.size(0), ys.size(1), ys.size(1)))), src)
+                           Variable(subsequent_mask(ys.size(1)).type_as(src.data).expand((ys.size(0), ys.size(1), ys.size(1)))), src_extended, oov_nums)
 
         
         # log_prob = [batch_size, 1, voc_size]
@@ -288,6 +295,6 @@ class Solver():
         # print(ys.size())
         # print(beam.top_prob)
         # print(len(beam.seq))
-        print('beam', beam.seq[0])
+
 
         return [beam.seq[0]]

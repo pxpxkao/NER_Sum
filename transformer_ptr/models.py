@@ -16,16 +16,18 @@ class EncoderDecoder(nn.Module):
         self.src_embed = src_embed
         self.tgt_embed = tgt_embed
         
-    def forward(self, src, tgt, src_mask, tgt_mask):
+    def forward(self, src, tgt, src_mask, tgt_mask, src_extended, oov_nums):
         "Take in and process masked src and target sequences."
+        # return self.decode(self.encode(src, src_mask), src_mask,
+        #                     tgt, tgt_mask, src)
         return self.decode(self.encode(src, src_mask), src_mask,
-                            tgt, tgt_mask, src)
+                            tgt, tgt_mask, src_extended, oov_nums)
     
     def encode(self, src, src_mask):
         return self.encoder(self.src_embed(src), src_mask)
     
-    def decode(self, memory, src_mask, tgt, tgt_mask, src):
-        return self.decoder(self.tgt_embed(tgt), memory, src_mask, tgt_mask, src)
+    def decode(self, memory, src_mask, tgt, tgt_mask, src, oov_nums=None):
+        return self.decoder(self.tgt_embed(tgt), memory, src_mask, tgt_mask, src, oov_nums)
 
     def loss_compute(self, out, y):
         true_dist = out.data.clone()
@@ -52,12 +54,15 @@ class EncoderDecoder(nn.Module):
     #     return ys
 
 
-    def greedy_decode(self, src, src_mask, max_len, start_symbol):
-        memory = self.encode(src, src_mask)
+    def greedy_decode(self, src, src_mask, max_len, start_symbol, oov_nums, vocab_size):
+        # print('src', src.size())
+        extend_mask = src < vocab_size
+        memory = self.encode(src * extend_mask, src_mask)
 
         #print(memory.size())
-        #print(src.size())
+        
         ys = torch.zeros(src.size()[0], 1).type_as(src.data) + start_symbol
+        ret = ys.data.clone()
         for i in range(max_len-1):
             # print('==============')
             # print(ys.size())
@@ -68,16 +73,19 @@ class EncoderDecoder(nn.Module):
             log_prob = self.decode(memory, src_mask, 
                                Variable(ys), 
                                Variable(subsequent_mask(ys.size(1))
-                                        .type_as(src.data).expand((ys.size(0), ys.size(1), ys.size(1)))), src)
-            #print(log_prob[:, :, :5])
+                                        .type_as(src.data).expand((ys.size(0), ys.size(1), ys.size(1)))), src, oov_nums)
+
             _, next_word = torch.max(log_prob, dim = -1)
-            #
+
             next_word = next_word.data[:,-1]
-            #print(next_word.view(-1, 1))
+            ret = torch.cat([ret, 
+                            (torch.zeros(src.size()[0], 1).type_as(src.data)) + (next_word.view(-1, 1))], dim=1)
+
+            m = next_word < vocab_size
+            next_word = m * next_word
             ys = torch.cat([ys, 
                             (torch.zeros(src.size()[0], 1).type_as(src.data)) + (next_word.view(-1, 1))], dim=1)
             
-
         return ys
 
 
@@ -124,7 +132,7 @@ class Decoder(nn.Module):
         else:
             self.pointer_gen = False
         self.sm = nn.Softmax(dim = -1)        
-    def forward(self, x, memory, src_mask, tgt_mask, src):
+    def forward(self, x, memory, src_mask, tgt_mask, src_extended, oov_nums):
 
         # σ(w>h ht* + w>s st + w>x xt + bptr)
         #memory                     [batch, src_len, d_model]
@@ -135,7 +143,7 @@ class Decoder(nn.Module):
 
         # every decoder step needs a p_gen -> p_gen   [batch, dec_len]
         if self.pointer_gen:
-            index = src
+            index = src_extended
             x_t = x 
         for layer in self.layers[:-1]:
             x, _ = layer(x, memory, src_mask, tgt_mask)
@@ -147,28 +155,19 @@ class Decoder(nn.Module):
             h_t = torch.bmm(attn_weights, memory)  #context vector
             p_gen = self.Wh(h_t) + self.Ws(s_t) + self.Wx(x_t) + self.bptr.expand_as(self.Wh(h_t))
             p_gen = torch.sigmoid(p_gen)
+
+            dec_dist_extended = torch.cat((dec_dist, torch.zeros((dec_dist.size(0), dec_dist.size(1), oov_nums)).cuda()), dim = -1)
+
             index = index.unsqueeze(1).expand_as(attn_weights)
-            enc_attn_dist = Variable(torch.zeros(dec_dist.size())).cuda().scatter_add_(dim = -1, index= index, src=attn_weights)
-            # print('==========================')
-            # print('attn_weights', attn_weights.sum(dim = -1)[0][0])
-            # print('attn_weights', attn_weights.sum(dim = -1)[0][1])
-            # print('attn_weights', attn_weights.size())
-            # print('index', index.size())
-            # print('enc_attn_dist', enc_attn_dist.size())
-            # print('enc_attn_dist_sum', enc_attn_dist.sum(dim = -1)[0][0])
-            # print('enc_attn_dist_sum', enc_attn_dist.sum(dim = -1)[0][1])
-            # print('enc_attn_dist_sum1', enc_attn_dist.sum(dim=-1).size())
-            # print('dec_dist', self.sm(dec_dist).size())
-            # print('dec_sum', self.sm(dec_dist).sum(dim = -1)[0][0])
-            
-            # print('sum', (p_gen * self.sm(dec_dist) + (1-p_gen) * enc_attn_dist).sum(dim=-1)[0][0])
+            enc_attn_dist = Variable(torch.zeros(dec_dist_extended.size())).cuda().scatter_add_(dim = -1, index= index, src=attn_weights)
+
 
         torch.cuda.synchronize()
 
         # print('p_gen * enc_attn_dist', (p_gen * enc_attn_dist).size())
         # return p_gen * F.log_softmax(dec_dist, dim=-1) + (1-p_gen) * enc_attn_dist
         if self.pointer_gen:
-            return p_gen * self.sm(dec_dist) + (1-p_gen) * enc_attn_dist
+            return p_gen * self.sm(dec_dist_extended) + (1-p_gen) * enc_attn_dist
         else:
             return self.sm(dec_dist)
 

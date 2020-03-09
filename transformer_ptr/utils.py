@@ -107,9 +107,11 @@ class data_utils():
         # self.pad = self.word2id['__UNK__']
 
 
-    def text2id(self, text, seq_length):
+    def text2id(self, text, seq_length, oov_list = []):
         vec = np.zeros([seq_length] ,dtype=np.int32)
-        unknown = 0.
+        vec_extended = np.zeros([seq_length] ,dtype=np.int32)
+
+        # unknown = 0.
         word_list = text.strip().split()
         length = len(word_list)
         for i,word in enumerate(word_list):
@@ -117,9 +119,16 @@ class data_utils():
                 break
             if word in self.word2id:
                 vec[i] = self.word2id[word]
+                vec_extended[i] = self.word2id[word]
             else:
                 vec[i] = self.word2id['__UNK__']
-                unknown += 1
+                try:
+                    vec_extended[i] = self.vocab_size + oov_list.index(word)
+                except ValueError:
+                    vec_extended[i] = self.vocab_size + len(oov_list)
+                    oov_list.append(word)
+                
+                # unknown += 1
 
         # if unknown / length > 0.1 or length > seq_length*1.5:
         #     vec = None
@@ -132,8 +141,9 @@ class data_utils():
         #         print('fuck')
         #         print(length, ' ', unknown, ' ' , seq_length)
         #         vec = None
-
-        return vec
+        # print('oov', oov_list)
+        # print(vec_extended)
+        return vec, vec_extended, oov_list
 
 
     def data_yielder(self, src_file, tgt_file, num_epoch = 100):
@@ -143,51 +153,61 @@ class data_utils():
         src_length = 400
         tgt_length = 100
         if self.train:
-            batch = {'src':[],'tgt':[],'src_mask':[],'tgt_mask':[],'y':[]}
+            batch = {'src':[],'tgt':[],'src_mask':[],'tgt_mask':[],'y':[], 'src_extended':[], 'oov_list':[]}
             for epo in range(num_epoch):
                 start_time = time.time()
                 print("start epo %d" % (epo))
+                oov_list = []
                 for line1,line2 in zip(open(src_file),open(tgt_file)):
-                    vec1 = self.text2id(line1.strip(), src_length)
-                    vec2 = self.text2id(line2.strip(), tgt_length)
+                    vec1, vec1_extended, oov_list = self.text2id(line1.strip(), src_length, oov_list)
+                    vec2, vec2_extended, oov_list = self.text2id(line2.strip(), tgt_length, oov_list)
+                    # print('===============')
 
                     if vec1 is not None and vec2 is not None:
                         batch['src'].append(vec1)
                         batch['src_mask'].append(np.expand_dims(vec1 != self.eos, -2).astype(np.float))
+                        batch['src_extended'].append(vec1_extended)
                         batch['tgt'].append(np.concatenate([[self.bos],vec2], axis=0)[:-1])
                         batch['tgt_mask'].append(self.subsequent_mask(vec2))
-                        batch['y'].append(vec2)
+                        batch['y'].append(vec2_extended)
 
                         if len(batch['src']) == self.batch_size:
-                            batch = {k: cc(v) for k, v in batch.items()}
+                            batch = {k: (cc(v) if k != 'oov_list' else v) for k, v in batch.items()}
+                            batch['oov_list'] = oov_list
+                            # print(batch)
                             torch.cuda.synchronize()
                             vec1 = None
                             vec2 = None
                             yield batch
-                            batch = {'src':[],'tgt':[],'src_mask':[],'tgt_mask':[],'y':[]}
+                            batch = {'src':[],'tgt':[],'src_mask':[],'tgt_mask':[],'y':[], 'src_extended':[], 'oov_list':[]}
+                            oov_list = []
                             #batch = {'src':[]}
                 end_time = time.time()
                 print('finish epo %d, time %f' % (epo,end_time-start_time))
 
         else:
-            batch = {'src':[], 'src_mask':[]}
+            batch = {'src':[], 'src_mask':[], 'src_extended':[], 'oov_list':[]}
             for epo in range(1):
                 start_time = time.time()
                 print("start epo %d" % (epo))
                 index = 0
+                oov_list = []
                 for line1 in open(src_file):
                     index += 1
-                    vec1 = self.text2id(line1.strip(), 400)
+                    vec1, vec1_extended, oov_list = self.text2id(line1.strip(), 400)
                     
                     if vec1 is not None:
                         batch['src'].append(vec1)
+                        batch['src_extended'].append(vec1_extended)
                         batch['src_mask'].append(np.expand_dims(vec1 != self.eos, -2).astype(np.float))
-
+                        # batch['oov_list'].append(oov_list)
                         if len(batch['src']) == self.batch_size:
-                            batch = {k: cc(v) for k, v in batch.items()}
+                            batch = {k: (cc(v) if k != 'oov_list' else v) for k, v in batch.items()}
+                            batch['oov_list'] = oov_list
                             torch.cuda.synchronize()
                             yield batch
-                            batch = {'src':[], 'src_mask':[]}
+                            batch = {'src':[], 'src_mask':[], 'src_extended':[], 'oov_list':[]}
+                            oov_list = []
                 batch = {k: cc(v) for k, v in batch.items()}
                 torch.cuda.synchronize()
                 yield batch
@@ -198,7 +218,7 @@ class data_utils():
 
 
 
-    def id2sent(self, indices, test=False, beam_search = False):
+    def id2sent(self, indices, test=False, beam_search = False, oov_list = None):
         # print(indices)
         sent = []
         word_dict={}
@@ -210,12 +230,22 @@ class data_utils():
                 word_dict[index] = 1
         else:            
             for index in indices:
-                if test and (index == self.word2id['__EOS__'] or index.item() in word_dict):
-                    continue
-                sent.append(self.index2word[index.item()])
+                if oov_list == None:
+                    if test and (index == self.word2id['__EOS__'] or index.item() in word_dict):
+                        continue
+                    sent.append(self.index2word[index.item()])
+                else:
+                    if index.item() >= self.vocab_size:
+                        if test and index.item() in word_dict:
+                            continue
+                        sent.append(oov_list[index.item() - self.vocab_size])
+                    else:
+                        if test and (index.item() == self.word2id['__EOS__'] or index.item() in word_dict):
+                            continue
+                        sent.append(self.index2word[index.item()])
+
             word_dict[index.item()] = 1
-        print(word_dict)
-        print(sent)
+
         return ' '.join(sent)
 
 
