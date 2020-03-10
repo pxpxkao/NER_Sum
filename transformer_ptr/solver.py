@@ -150,18 +150,18 @@ class Solver():
             # if step % 50000 == 1:
                 
             if step % 100000 == 2:
-                batch['src'] = batch['src'].detach().cpu()
-                batch['y'] = batch['y'].detach().cpu()
-                batch['src_extended'] = batch['src_extended'].detach().cpu()
-                batch['src_mask'] = batch['src_mask'].detach().cpu()
-                batch['tgt'] = batch['tgt'].detach().cpu()
-                batch['tgt_mask'] = batch['tgt_mask'].detach().cpu()
-                del batch['src']
-                del batch['src_extended']
-                del batch['tgt']
-                del batch['y']
-                del batch['src_mask']
-                del batch['tgt_mask']
+                # batch['src'] = batch['src'].detach().cpu()
+                # batch['y'] = batch['y'].detach().cpu()
+                # batch['src_extended'] = batch['src_extended'].detach().cpu()
+                # batch['src_mask'] = batch['src_mask'].detach().cpu()
+                # batch['tgt'] = batch['tgt'].detach().cpu()
+                # batch['tgt_mask'] = batch['tgt_mask'].detach().cpu()
+                # del batch['src']
+                # del batch['src_extended']
+                # del batch['tgt']
+                # del batch['y']
+                # del batch['src_mask']
+                # del batch['tgt_mask']
 
                 self.model.eval()
                 val_yielder = self.data_utils.data_yielder(self.args.valid_file, self.args.valid_tgt_file, 1)
@@ -183,7 +183,7 @@ class Solver():
                 self.outfile.write('=============================================\n')
                 # self.model.train()
                 self.log.add_scalar('Loss/valid', sum(total_loss)/len(total_loss), step)
-                batch = None
+
                 w_step = int(step/100000)
                 if self.args.load_model:
                     w_step += (int(self.args.load_model.split('/')[-1][0]))
