@@ -154,10 +154,11 @@ class data_utils():
         tgt_length = 100
         if self.train:
             batch = {'src':[],'tgt':[],'src_mask':[],'tgt_mask':[],'y':[], 'src_extended':[], 'oov_list':[]}
+            oov_list = []
             for epo in range(num_epoch):
                 start_time = time.time()
                 print("start epo %d" % (epo))
-                oov_list = []
+                
                 for line1,line2 in zip(open(src_file),open(tgt_file)):
                     vec1, vec1_extended, oov_list = self.text2id(line1.strip(), src_length, oov_list)
                     vec2, vec2_extended, oov_list = self.text2id(line2.strip(), tgt_length, oov_list)
@@ -208,7 +209,8 @@ class data_utils():
                             yield batch
                             batch = {'src':[], 'src_mask':[], 'src_extended':[], 'oov_list':[]}
                             oov_list = []
-                batch = {k: cc(v) for k, v in batch.items()}
+                batch = {k: (cc(v) if k != 'oov_list' else v) for k, v in batch.items()}
+                batch['oov_list'] = oov_list
                 torch.cuda.synchronize()
                 yield batch
                 end_time = time.time()

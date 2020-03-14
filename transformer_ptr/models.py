@@ -159,6 +159,8 @@ class Decoder(nn.Module):
             dec_dist_extended = torch.cat((dec_dist, torch.zeros((dec_dist.size(0), dec_dist.size(1), oov_nums)).cuda()), dim = -1)
 
             index = index.unsqueeze(1).expand_as(attn_weights)
+            # print('max', index.max())
+            # print('oovs',oov_nums)
             enc_attn_dist = Variable(torch.zeros(dec_dist_extended.size())).cuda().scatter_add_(dim = -1, index= index, src=attn_weights)
 
 
