@@ -3,7 +3,7 @@ import json
 
 args = sys.argv
 
-with open(args[2], 'r') as fp:
+with open(args[1], 'r') as fp:
     summary = fp.readlines()
 print(len(summary))
 
@@ -20,7 +20,7 @@ ner = []
 label_count = {}
 for s_idx, s in enumerate(summary):
     print(s_idx)
-    if s_idx%10000 == 2:
+    if s_idx%2000 == 2:
         write_file('ner.src', text)
         write_file('ner.tgt', ner)
     doc = nlp(s)
@@ -38,15 +38,13 @@ for s_idx, s in enumerate(summary):
     text.append(' '.join(text_list)+'\n')
     ner.append(' '.join(ner_list)+'\n')
 
-if(args[1] == '-train_data'):
-    write_file('train.ner.tgt', ner)
-if(args[1] == '-test_data'):
-    write_file('test.ner.tgt', ner)
+
+write_file(args[2], ner)
 
 label_map = {}
 label_map['O'] = len(label_map)
 for key, value in label_count.items():
     label_map[key] = len(label_map)
-print(label_map)
+# print(label_map)
 # with open('label-index.map', 'w') as fp:
 #     json.dump(label_map, fp)

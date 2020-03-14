@@ -99,7 +99,7 @@ class data_utils():
         if os.path.exists(dict_path):
             self.word2id = read_json(dict_path)
         else:
-            self.word2id = make_dict(25000, dict_path, self.train_path, self.target_path)
+            self.word2id = make_dict(50000, dict_path, self.train_path, self.target_path)
 
         self.index2word = [[]]*len(self.word2id)
         for word in self.word2id:
@@ -109,11 +109,14 @@ class data_utils():
         print('vocab_size:',self.vocab_size)
         self.eos = self.word2id['__EOS__']
         self.bos = self.word2id['__BOS__']
+        self.pad = self.eos
 
 
-    def text2id(self, text, seq_length):
+    def text2id(self, text, seq_length, oov_list = []):
         vec = np.zeros([seq_length] ,dtype=np.int32)
-        unknown = 0.
+        vec_extended = np.zeros([seq_length], dtype=np.int32)
+
+        # unknown = 0.
         word_list = text.strip().split()
         length = len(word_list)
         for i,word in enumerate(word_list):
@@ -121,9 +124,15 @@ class data_utils():
                 break
             if word in self.word2id:
                 vec[i] = self.word2id[word]
+                vec_extended[i] = self.word2id[word]
             else:
                 vec[i] = self.word2id['__UNK__']
-                unknown += 1
+                try:
+                    vec_extended[i] = self.vocab_size + oov_list.index(word)
+                except ValueError:
+                    vec_extended[i] = self.vocab_size + len(oov_list)
+                    oov_list.append(word)
+                # unknown += 1
 
         # if unknown / length > 0.1 or length > seq_length*1.5:
         #     vec = None
@@ -137,7 +146,7 @@ class data_utils():
         #         print(length, ' ', unknown, ' ' , seq_length)
         #         vec = None
 
-        return vec
+        return vec, vec_extended, oov_list
 
     def ent2id(self, ents, seq_length):
         ner = np.zeros([seq_length], dtype=np.int32)
@@ -157,60 +166,72 @@ class data_utils():
         print(tgt_file)
         print(ner_file)
         print(self.batch_size)
-        src_length = 256
-        tgt_length = 80
+        src_length = 400
+        tgt_length = 100
         if self.train:
-            batch = {'src':[],'tgt':[],'src_mask':[],'tgt_mask':[],'y':[], 'ner':[]}
+            batch = {'src':[],'tgt':[],'src_mask':[],'tgt_mask':[],'y':[], 'ner':[], 'src_extended': [], 'oov_list': []}
             for epo in range(num_epoch):
                 start_time = time.time()
                 print("start epo %d" % (epo))
+                oov_list = []
                 for line1,line2,line3 in zip(open(src_file),open(tgt_file),open(ner_file)):
-                    vec1 = self.text2id(line1.strip(), src_length)
-                    vec2 = self.text2id(line2.strip(), tgt_length)
+                    vec1, vec1_extended, oov_list = self.text2id(line1.strip(), src_length, oov_list)
+                    vec2, vec2_extended, oov_list = self.text2id(line2.strip(), tgt_length, oov_list)
                     ner = self.ent2id(line3.strip(), src_length)
+
                     if vec1 is not None and vec2 is not None and ner is not None:
                         batch['src'].append(vec1)
                         batch['src_mask'].append(np.expand_dims(vec1 != self.eos, -2).astype(np.float))
+                        batch['src_extended'].append(vec1_extended)
                         batch['tgt'].append(np.concatenate([[self.bos],vec2], axis=0)[:-1])
                         batch['tgt_mask'].append(self.subsequent_mask(vec2))
-                        batch['y'].append(vec2)
-                        ner_one_hot = torch.zeros(256, class_num).scatter_(1, torch.LongTensor(np.expand_dims(ner, 1)), 1)
+                        batch['y'].append(vec2_extended)
+                        ner_one_hot = torch.zeros(src_length, class_num).scatter_(1, torch.LongTensor(np.expand_dims(ner, 1)), 1)
                         batch['ner'].append(ner_one_hot.numpy())
 
                         if len(batch['src']) == self.batch_size:
-                            batch = {k: cc(v) for k, v in batch.items()}
+                            batch = {k: (cc(v) if k != 'oov_list' else v) for k, v in batch.items()}
+                            batch['oov_list'] = oov_list
                             # for k, v in batch.items():
                             #     print(k, v.shape)
                             torch.cuda.synchronize()
                             vec1 = None
                             vec2 = None
                             yield batch
-                            batch = {'src':[],'tgt':[],'src_mask':[],'tgt_mask':[],'y':[], 'ner':[]}
+                            batch = {'src':[],'tgt':[],'src_mask':[],'tgt_mask':[],'y':[], 'ner':[], 'src_extended':[], 'oov_list':[]}
+                            oov_list = []
                 end_time = time.time()
                 print('finish epo %d, time %f' % (epo,end_time-start_time))
 
         else:
-            batch = {'src':[], 'src_mask':[], 'ner':[]}
+            batch = {'src':[], 'src_mask':[], 'ner':[], 'src_extended':[], 'oov_list':[]}
             for epo in range(1):
                 start_time = time.time()
                 print("start epo %d" % (epo))
                 index = 0
+                oov_list = []
                 for line1,line2 in zip(open(src_file),open(ner_file)):
                     index += 1
-                    vec1 = self.text2id(line1.strip(), src_length)
+                    vec1, vec1_extended, oov_list = self.text2id(line1.strip(), src_length)
                     ner = self.ent2id(line2.strip(), src_length)
                     
                     if vec1 is not None:
                         batch['src'].append(vec1)
+                        batch['src_extended'].append(vec1_extended)
                         batch['src_mask'].append(np.expand_dims(vec1 != self.eos, -2).astype(np.float))
                         ner_one_hot = torch.zeros(256, class_num).scatter_(1, torch.LongTensor(np.expand_dims(ner, 1)), 1)
                         batch['ner'].append(ner_one_hot.numpy())
 
-                        if len(batch['src']) == self.batch_size or index >= 1951:
-                            batch = {k: cc(v) for k, v in batch.items()}
+                        if len(batch['src']) == self.batch_size:
+                            batch = {k: (cc(v) if k != 'oov_list' else v) for k, v in batch.items()}
+                            batch['oov_list'] = oov_list
                             torch.cuda.synchronize()
                             yield batch
-                            batch = {'src':[], 'src_mask':[], 'ner':[]}
+                            batch = {'src':[], 'src_mask':[], 'ner':[], 'src_extended':[], 'oov_list':[]}
+                batch = {k: (cc(v) if k != 'oov_list' else v) for k, v in batch.items()}
+                batch['oov_list'] = oov_list
+                torch.cuda.synchronize()
+                yield batch
                 end_time = time.time()
                 print('finish epo %d, time %f' % (epo,end_time-start_time))
 
@@ -218,14 +239,32 @@ class data_utils():
 
 
 
-    def id2sent(self, indices, test=False):
+    def id2sent(self, indices, test=False, beam_search = False, oov_list = None):
+        #print(indices)
         sent = []
         word_dict={}
-        for index in indices:
-            if test and (index == self.word2id['__EOS__'] or index in word_dict):
-                continue
-            sent.append(self.index2word[index])
-            word_dict[index] = 1
+        if beam_search:
+            for index in indices:
+                if test and (index == self.word2id['__EOS__'] or index in word_dict):
+                    continue
+                sent.append(self.index2word[index])
+                word_dict[index] = 1
+        else:
+            for index in indices:
+                if oov_list == None:
+                    if test and (index == self.word2id['__EOS__'] or index.item() in word_dict):
+                        continue
+                    sent.append(self.index2word[index.item()])
+                else:
+                    if index.item() >= self.vocab_size:
+                        if test and index.item() in word_dict:
+                            continue
+                        sent.append(oov_list[index.item() - self.vocab_size])
+                    else:
+                        if test and (index.item() == self.word2id['__EOS__'] or index.item() in word_dict):
+                            continue
+                        sent.append(self.index2word[index.item()])
+                word_dict[index.item()] = 1
 
         return ' '.join(sent)
 
@@ -233,89 +272,3 @@ class data_utils():
     def subsequent_mask(self, vec):
         attn_shape = (vec.shape[-1], vec.shape[-1])
         return (np.triu(np.ones((attn_shape)), k=1).astype('uint8') == 0).astype(np.float)
-
-
-
-# class data_utils():
-#     def __init__(self, args):
-#         self.batch_size = args.batch_size
-
-#         dict_path = '../origin/data/dictionary.json'
-#         self.train_path = '../origin/data/train.article.txt'
-#         if os.path.exists(dict_path):
-#             self.word2id = read_json(dict_path)
-#         else:
-#             self.word2id = make_dict(25000, dict_path, self.train_path)
-
-#         self.index2word = [[]]*len(self.word2id)
-#         for word in self.word2id:
-#             self.index2word[self.word2id[word]] = word
-
-#         self.vocab_size = len(self.word2id)
-#         print('vocab_size:',self.vocab_size)
-#         self.eos = self.word2id['__EOS__']
-#         self.bos = self.word2id['__BOS__']
-
-
-#     def text2id(self, text, seq_length=40):
-#         vec = np.zeros([seq_length] ,dtype=np.int32)
-#         unknown = 0.
-#         word_list = text.strip().split()
-#         length = len(word_list)
-
-#         for i,word in enumerate(word_list):
-#             if i >= seq_length:
-#                 break
-#             if word in self.word2id:
-#                 vec[i] = self.word2id[word]
-#             else:
-#                 vec[i] = self.word2id['__UNK__']
-#                 unknown += 1
-
-#         if unknown / length > 0.1 or length > seq_length*1.5:
-#             vec = None
-
-#         return vec
-
-
-#     def data_yielder(self):
-#         batch = {'src':[],'tgt':[],'src_mask':[],'tgt_mask':[],'y':[]}
-#         for epo in range(20):
-#             start_time = time.time()
-#             print("start epo %d" % (epo))
-#             for line1,line2 in zip(open('../origin/data/train.article.txt'),open('../origin/data/train.title.txt')):
-#                 vec1 = self.text2id(line1.strip(), 45)
-#                 vec2 = self.text2id(line2.strip(), 14)
-
-#                 if vec1 is not None and vec2 is not None:
-#                     batch['src'].append(vec1)
-#                     batch['src_mask'].append(np.expand_dims(vec1 != self.eos, -2).astype(np.float))
-#                     batch['tgt'].append(np.concatenate([[self.bos],vec2], axis=0)[:-1])
-#                     batch['tgt_mask'].append(self.subsequent_mask(vec2))
-#                     batch['y'].append(vec2)
-
-#                     if len(batch['src']) == self.batch_size:
-#                         batch = {k: cc(v) for k, v in batch.items()}
-#                         torch.cuda.synchronize()
-#                         yield batch
-#                         batch = {'src':[],'tgt':[],'src_mask':[],'tgt_mask':[],'y':[]}
-#             end_time = time.time()
-#             print('finish epo %d, time %f' % (epo,end_time-start_time))
-
-
-
-#     def id2sent(self,indices, test=False):
-#         sent = []
-#         word_dict={}
-#         for index in indices:
-#             if test and (index == self.word2id['__EOS__'] or index in word_dict):
-#                 continue
-#             sent.append(self.index2word[index])
-#             word_dict[index] = 1
-
-#         return ' '.join(sent)
-
-
-#     def subsequent_mask(self, vec):
-#         attn_shape = (vec.shape[-1], vec.shape[-1])
-#         return (np.triu(np.ones((attn_shape)), k=1).astype('uint8') == 0).astype(np.float)

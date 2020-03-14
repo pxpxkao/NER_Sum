@@ -12,10 +12,12 @@ for i in range(len(summary)):
     summary[i] = re.sub('[%s]' % re.escape(string.punctuation), '', summary[i])
     reference[i] = re.sub('[%s]' % re.escape(string.punctuation), '', reference[i])
 """
+reference = reference[:len(summary)]
 for i in range(len(summary)):
     summary[i] = [summary[i].strip()]
     reference[i] = [[reference[i].strip()]]
-print(len(summary))
+print("summary:", len(summary))
+print("reference:", len(reference))
 #summary = summary[1:1000]
 #reference = reference[1:1000]
 
