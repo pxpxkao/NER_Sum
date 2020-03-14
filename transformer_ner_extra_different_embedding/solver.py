@@ -26,8 +26,8 @@ class Solver():
             self.log = SummaryWriter(self.logfile)
 
 
-    def make_model(self, src_vocab, tgt_vocab, N=6, 
-            d_model=512, d_ff=2048, h=8, dropout=0.1, class_num=19):
+    def make_model(self, src_vocab, tgt_vocab, N=6, dropout=0.1,
+            d_model=512, d_ff=2048, h=8, class_num=19):
             
             "Helper: Construct a model from hyperparameters."
             c = copy.deepcopy
