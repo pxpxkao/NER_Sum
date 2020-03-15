@@ -89,7 +89,7 @@ class data_utils():
         self.target_path = args.tgt_file
         self.train_ner_path = args.train_ner_tgt_file
         self.test_ner_path = args.test_ner_tgt_file
-        label_idx_path = '../../data/ents/label-index.map'
+        label_idx_path = '../../data/cnndm/label-index.map'
 
         if os.path.exists(label_idx_path):
             self.label2id = read_json(label_idx_path)
