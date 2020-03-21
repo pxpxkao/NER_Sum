@@ -21,7 +21,7 @@ print(len(summary))
 
 rouge = Pythonrouge(summary_file_exist=False,
                     summary=summary, reference=reference,
-                    n_gram=2, ROUGE_SU4=True, ROUGE_L=False,
+                    n_gram=2, ROUGE_SU4=True, ROUGE_L=True,
                     recall_only=True, stemming=True, stopwords=True,
                     word_level=True, length_limit=True, length=50,
                     use_cf=False, cf=95, scoring_formula='average',

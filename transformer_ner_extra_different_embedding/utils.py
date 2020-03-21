@@ -52,11 +52,11 @@ def make_dict(max_num, dict_path, train_path, target_path):
     word2id = dict()
     line_count = 0
     
-    for line in tqdm(open(train_path)):
+    for line in tqdm(open(train_path, encoding='utf-8')):
         line_count += 1.0
         for word in line.split():
             word_count[word] = word_count.get(word,0) + 1
-    for line in tqdm(open(target_path)):
+    for line in tqdm(open(target_path, encoding='utf-8')):
         line_count += 1.0
         for word in line.split():
             word_count[word] = word_count.get(word,0) + 1
@@ -175,7 +175,7 @@ class data_utils():
                 start_time = time.time()
                 print("start epo %d" % (epo))
                 
-                for line1,line2,line3 in zip(open(src_file),open(tgt_file),open(ner_file)):
+                for line1,line2,line3 in zip(open(src_file, encoding='utf-8'),open(tgt_file, encoding='utf-8'),open(ner_file, encoding='utf-8')):
                     vec1, vec1_extended, oov_list = self.text2id(line1.strip(), src_length, oov_list)
                     vec2, vec2_extended, oov_list = self.text2id(line2.strip(), tgt_length, oov_list)
                     ner = self.ent2id(line3.strip(), src_length)
@@ -186,7 +186,10 @@ class data_utils():
                         batch['src_extended'].append(vec1_extended)
                         batch['tgt'].append(np.concatenate([[self.bos],vec2], axis=0)[:-1])
                         batch['tgt_mask'].append(self.subsequent_mask(vec2))
-                        batch['y'].append(vec2_extended)
+                        if self.pointer_gen:
+                            batch['y'].append(vec2_extended)
+                        else:
+                            batch['y'].append(vec2)
                         ner_one_hot = torch.zeros(src_length, class_num).scatter_(1, torch.LongTensor(np.expand_dims(ner, 1)), 1)
                         batch['ner'].append(ner_one_hot.numpy())
 
