@@ -66,6 +66,7 @@ class Solver():
         warmup_steps = 10000
         d_model = 512
         lr = 1e-7
+        min_loss = 100
 
         for step in range(1000000):
             self.model.train()
@@ -113,22 +114,7 @@ class Solver():
                 self.log.add_scalar('Loss/train', np.mean(total_loss), step)
                 total_loss = []
 
-            if step % 100000 == 2:
-
-                # batch['src'] = batch['src'].detach().cpu()
-                # batch['y'] = batch['y'].detach().cpu()
-                # batch['src_extended'] = batch['src_extended'].detach().cpu()
-                # batch['src_mask'] = batch['src_mask'].detach().cpu()
-                # batch['tgt'] = batch['tgt'].detach().cpu()
-                # batch['tgt_mask'] = batch['tgt_mask'].detach().cpu()
-                # batch['ner'] = batch['ner'].detach().cpu()
-                # del batch['src']
-                # del batch['src_extended']
-                # del batch['tgt']
-                # del batch['y']
-                # del batch['src_mask']
-                # del batch['tgt_mask']
-                # del batch['ner']
+            if step % 50000 == 2:
 
                 self.model.eval()
                 val_yielder = self.data_utils.data_yielder(self.args.valid_file, self.args.valid_tgt_file, self.args.valid_ner_tgt_file, 1)
@@ -140,8 +126,6 @@ class Solver():
                     batch['tgt_mask'] = batch['tgt_mask'].cuda()
                     batch['ner'] = batch['ner'].cuda()
                     batch['src_extended'] = batch['src_extended'].long().cuda()
-
-                    # print(len(batch['oov_list']))
 
                     out = self.model.forward(batch['src'], batch['tgt'], 
                             batch['src_mask'], batch['tgt_mask'], batch['ner'], batch['src_extended'], len(batch['oov_list']))
@@ -157,15 +141,18 @@ class Solver():
                 # self.model.train()
                 self.log.add_scalar('Loss/valid', sum(total_loss)/len(total_loss), step)
 
-                w_step = int(step/100000)
+                w_step = int(step/50000)*5
                 if self.args.load_model:
                     w_step += (int(self.args.load_model.split('/')[-1][0]))
-                print('Saving ' + str(w_step) + '0w_model.pth!\n')
-                self.outfile.write('Saving ' + str(w_step) + '0w_model.pth\n')
-                model_name = str(w_step) + '0w_' + '%6.6f'%(sum(total_loss)/len(total_loss)) + 'model.pth'
-                state = {'step': step, 'state_dict': self.model.state_dict()}
 
-                torch.save(state, os.path.join(self.model_dir, model_name))
+                if (sum(total_loss)/len(total_loss)) < min_loss:
+                    min_loss = sum(total_loss)/len(total_loss)
+                    print('Saving ' + str(w_step) + 'w_model.pth!\n')
+                    self.outfile.write('Saving ' + str(w_step) + 'w_model.pth\n')
+                    model_name = str(w_step) + '0w_' + '%6.6f'%(sum(total_loss)/len(total_loss)) + 'model.pth'
+                    state = {'step': step, 'state_dict': self.model.state_dict()}
+
+                    torch.save(state, os.path.join(self.model_dir, model_name))
 
 
     def test(self):
