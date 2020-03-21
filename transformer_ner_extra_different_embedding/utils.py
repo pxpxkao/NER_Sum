@@ -223,7 +223,7 @@ class data_utils():
                         batch['src'].append(vec1)
                         batch['src_extended'].append(vec1_extended)
                         batch['src_mask'].append(np.expand_dims(vec1 != self.eos, -2).astype(np.float))
-                        ner_one_hot = torch.zeros(256, class_num).scatter_(1, torch.LongTensor(np.expand_dims(ner, 1)), 1)
+                        ner_one_hot = torch.zeros(src_length, class_num).scatter_(1, torch.LongTensor(np.expand_dims(ner, 1)), 1)
                         batch['ner'].append(ner_one_hot.numpy())
 
                         if len(batch['src']) == self.batch_size:
