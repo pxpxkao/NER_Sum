@@ -90,6 +90,7 @@ class data_utils():
         self.train_ner_path = args.train_ner_tgt_file
         self.test_ner_path = args.test_ner_tgt_file
         label_idx_path = '../../data/cnndm/label-index.map'
+        self.pointer_gen = args.pointer_gen
 
         if os.path.exists(label_idx_path):
             self.label2id = read_json(label_idx_path)
