@@ -86,7 +86,8 @@ class Encoder(nn.Module):
     def __init__(self, h, d_model, with_focus_attn, ff, dropout, N):
         super(Encoder, self).__init__()
         # self.layers = clones(layer, N)
-        self.layers = nn.ModuleList([EncoderLayer(h, d_model, with_focus_attn, ff, dropout)] for _ in range(N))
+        # nn.ModuleList([copy.deepcopy(module) for _ in range(N)])
+        self.layers = nn.ModuleList([EncoderLayer(h, d_model, with_focus_attn, ff, dropout) for _ in range(N)])
         self.norm = LayerNorm(layer.size)
 
     def forward(self, x, mask):
