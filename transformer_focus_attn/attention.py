@@ -37,8 +37,8 @@ class MultiHeadedAttention(nn.Module):
         self.dropout = nn.Dropout(p=dropout)
 
         if with_focus_attention:
-            self.linear_focus_query = nn.Linear(d_model, d_model)
-            self.linear_focus_global = nn.Linear(d_model, d_model)
+            self.linear_focus_query = copy.deepcopy(nn.Linear(d_model, d_model))
+            self.linear_focus_global = copy.deepcopy(nn.Linear(d_model, d_model))
 
             up = torch.randn(h, 1, self.d_k)
             self.up = Variable(up, requires_grad=True).cuda()
