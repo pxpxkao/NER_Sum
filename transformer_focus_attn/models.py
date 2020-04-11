@@ -40,7 +40,7 @@ class EncoderDecoder(nn.Module):
 
     def greedy_decode(self, src, src_mask, max_len, start_symbol, oov_nums, vocab_size):
         # print('src', src.size())
-        extend_mask = src < vocab_size
+        extend_mask = (src < vocab_size).long()
         memory = self.encode(src * extend_mask, src_mask)
 
         #print(memory.size())
@@ -65,7 +65,7 @@ class EncoderDecoder(nn.Module):
             ret = torch.cat([ret, 
                             (torch.zeros(src.size()[0], 1).type_as(src.data)) + (next_word.view(-1, 1))], dim=1)
 
-            m = next_word < vocab_size
+            m = (next_word < vocab_size).long()
             next_word = m * next_word
             ys = torch.cat([ys, 
                             (torch.zeros(src.size()[0], 1).type_as(src.data)) + (next_word.view(-1, 1))], dim=1)

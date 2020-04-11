@@ -35,7 +35,7 @@ class Solver():
             position = PositionalEncoding(d_model, dropout)
             word_embed = nn.Sequential(Embeddings(d_model, src_vocab), c(position))
             model = EncoderDecoder(
-                Encoder(EncoderLayer(d_model, c(attn_focus), c(ff), dropout), N),
+                Encoder(EncoderLayer(d_model, attn_focus, c(ff), dropout), N),
                 Decoder(DecoderLayer(d_model, c(attn), c(attn), 
                                      c(ff), dropout), N, d_model, tgt_vocab, self.args.pointer_gen),
                 word_embed,
@@ -165,21 +165,6 @@ class Solver():
         f = open(os.path.join(pred_dir, filename), 'w')
 
         self.model.eval()
-
-        # decode_strategy = BeamSearch(
-        #             self.beam_size,
-        #             batch_size=batch.batch_size,
-        #             pad=self._tgt_pad_idx,
-        #             bos=self._tgt_bos_idx,
-        #             eos=self._tgt_eos_idx,
-        #             n_best=self.n_best,
-        #             global_scorer=self.global_scorer,
-        #             min_length=self.min_length, max_length=self.max_length,
-        #             return_attention=attn_debug or self.replace_unk,
-        #             block_ngram_repeat=self.block_ngram_repeat,
-        #             exclusion_tokens=self._exclusion_idxs,
-        #             stepwise_penalty=self.stepwise_penalty,
-        #             ratio=self.ratio)
             
         step = 0
         for batch in data_yielder:
