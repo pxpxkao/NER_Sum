@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from modules import *
+from attention import *
 
 class EncoderDecoder(nn.Module):
     """
@@ -48,12 +49,6 @@ class EncoderDecoder(nn.Module):
         ys = torch.zeros(src.size()[0], 1).type_as(src.data) + start_symbol
         ret = ys.data.clone()
         for i in range(max_len-1):
-            # print('==============')
-            # print(ys.size())
-            # print(subsequent_mask(ys.size(1))
-            #                             .type_as(src.data).expand((ys.size(0), ys.size(1), ys.size(1))).size())
-            # print(subsequent_mask(ys.size(1))
-            #                             .type_as(src.data).expand((ys.size(0), ys.size(1), ys.size(1))))
             log_prob = self.decode(memory, src_mask, 
                                Variable(ys), 
                                Variable(subsequent_mask(ys.size(1))
@@ -88,9 +83,10 @@ class Generator(nn.Module):
 
     
 class Encoder(nn.Module):
-    def __init__(self, layer, N):
+    def __init__(self, h, d_model, with_focus_attn, ff, dropout, N):
         super(Encoder, self).__init__()
-        self.layers = clones(layer, N)
+        # self.layers = clones(layer, N)
+        self.layers = nn.ModuleList([EncoderLayer(h, d_model, with_focus_attn, c(ff), dropout)] for _ in range(N))
         self.norm = LayerNorm(layer.size)
 
     def forward(self, x, mask):
@@ -160,9 +156,9 @@ class Decoder(nn.Module):
 
 class EncoderLayer(nn.Module):
     "Encoder is made up of self-attn and feed forward (defined below)"
-    def __init__(self, size, self_attn, feed_forward, dropout):
+    def __init__(self, h, size, with_focus_attn, feed_forward, dropout):
         super(EncoderLayer, self).__init__()
-        self.self_attn = self_attn
+        self.self_attn = MultiHeadedAttention(h, size, with_focus_attention=with_focus_attn)
         self.feed_forward = feed_forward
         self.sublayer = clones(SublayerConnection(size, dropout), 2)
         self.size = size

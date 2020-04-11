@@ -35,7 +35,8 @@ class Solver():
             position = PositionalEncoding(d_model, dropout)
             word_embed = nn.Sequential(Embeddings(d_model, src_vocab), c(position))
             model = EncoderDecoder(
-                Encoder(EncoderLayer(d_model, attn_focus, c(ff), dropout), N),
+                # Encoder(EncoderLayer(d_model, attn_focus, c(ff), dropout), N),
+                Encoder(h, d_model, True, c(ff), dropout, N),
                 Decoder(DecoderLayer(d_model, c(attn), c(attn), 
                                      c(ff), dropout), N, d_model, tgt_vocab, self.args.pointer_gen),
                 word_embed,
