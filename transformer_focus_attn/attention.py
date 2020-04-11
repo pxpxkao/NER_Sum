@@ -42,11 +42,11 @@ class MultiHeadedAttention(nn.Module):
 
             up = torch.randn(h, 1, self.d_k)
             self.up = Variable(up, requires_grad=True).cuda()
-            torch.nn.init.xavier_uniform_(self.up)
+            torch.nn.init.xavier_uniform(self.up)
 
             uz = torch.randn(h, 1, self.d_k)
             self.uz = Variable(uz, requires_grad=True).cuda()
-            torch.nn.init.xavier_uniform_(self.uz)
+            torch.nn.init.xavier_uniform(self.uz)
         self.with_focus_attention = with_focus_attention
         
     def forward(self, query, key, value, mask=None):
