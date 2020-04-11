@@ -88,7 +88,7 @@ class Encoder(nn.Module):
         # self.layers = clones(layer, N)
         # nn.ModuleList([copy.deepcopy(module) for _ in range(N)])
         self.layers = nn.ModuleList([EncoderLayer(h, d_model, with_focus_attn, ff, dropout) for _ in range(N)])
-        self.norm = LayerNorm(layer.size)
+        self.norm = LayerNorm(d_model)
 
     def forward(self, x, mask):
         for layer in self.layers:
