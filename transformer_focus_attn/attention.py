@@ -9,12 +9,13 @@ def clones(module, N):
     "Produce N identical layers."
     return nn.ModuleList([copy.deepcopy(module) for _ in range(N)])
 
-def attention(query, key, value, mask=None, dropout=None, focus_score=None):
+def attention(query, key, value, mask=None, dropout=None, focus_score=None, ner_mask=None):
     "Compute 'Scaled Dot Product Attention'"
     d_k = query.size(-1)
     scores = torch.matmul(query, key.transpose(-2, -1)) \
              / math.sqrt(d_k)
-    if focus_score is not None:
+    if focus_score is not None and ner_mask is not None:
+        focus_score = focus_score.masked_fill(ner_mask == 0, 0.)
         scores = scores + focus_score
     if mask is not None:
         scores = scores.masked_fill(mask == 0, -1e15)
@@ -49,7 +50,7 @@ class MultiHeadedAttention(nn.Module):
             torch.nn.init.xavier_uniform(self.uz)
         self.with_focus_attention = with_focus_attention
         
-    def forward(self, query, key, value, mask=None):
+    def forward(self, query, key, value, mask=None, ner_mask=None):
         if mask is not None:
             # Same mask applied to all h heads.
             # mask = (nbatch, 1, seq_len, seq_len)
@@ -92,7 +93,7 @@ class MultiHeadedAttention(nn.Module):
 
         # 2) Apply attention on all the projected vectors in batch. 
         x, self.attn = attention(query, key, value, mask=mask, 
-                                 dropout=self.dropout, focus_score=focus_score)
+                                 dropout=self.dropout, focus_score=focus_score, ner_mask=ner_mask)
         # print("attn")
         # print(self.attn.size())
         # 3) "Concat" using a view and apply a final linear. 
@@ -102,7 +103,7 @@ class MultiHeadedAttention(nn.Module):
 
 if __name__ == '__main__':
     attn = MultiHeadedAttention(8, 512, with_focus_attention=True)
-    nbatch, seq_len, d_model = 8, 400, 512
+    nbatch, seq_len, d_model = 4, 400, 512
     x = torch.randn((nbatch, seq_len, d_model))
     x, attn_dist = attn(x, x, x)
     print('x:', x.size())

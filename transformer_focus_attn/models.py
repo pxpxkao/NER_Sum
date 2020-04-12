@@ -17,15 +17,15 @@ class EncoderDecoder(nn.Module):
         self.src_embed = src_embed
         self.tgt_embed = tgt_embed
         
-    def forward(self, src, tgt, src_mask, tgt_mask, src_extended, oov_nums):
+    def forward(self, src, tgt, src_mask, tgt_mask, src_extended, oov_nums, ner_mask):
         "Take in and process masked src and target sequences."
         # return self.decode(self.encode(src, src_mask), src_mask,
         #                     tgt, tgt_mask, src)
-        return self.decode(self.encode(src, src_mask), src_mask,
+        return self.decode(self.encode(src, src_mask, ner_mask), src_mask,
                             tgt, tgt_mask, src_extended, oov_nums)
     
-    def encode(self, src, src_mask):
-        return self.encoder(self.src_embed(src), src_mask)
+    def encode(self, src, src_mask, ner_mask):
+        return self.encoder(self.src_embed(src), src_mask, ner_mask)
     
     def decode(self, memory, src_mask, tgt, tgt_mask, src, oov_nums=None):
         return self.decoder(self.tgt_embed(tgt), memory, src_mask, tgt_mask, src, oov_nums)
@@ -39,10 +39,10 @@ class EncoderDecoder(nn.Module):
         return -(true_dist*torch.log(out)).sum(dim=2).mean()
         #return -torch.gather(out, 2, y.unsqueeze(2)).squeeze(2).mean()
 
-    def greedy_decode(self, src, src_mask, max_len, start_symbol, oov_nums, vocab_size):
+    def greedy_decode(self, src, src_mask, max_len, start_symbol, oov_nums, vocab_size, ner_mask):
         # print('src', src.size())
         extend_mask = (src < vocab_size).long()
-        memory = self.encode(src * extend_mask, src_mask)
+        memory = self.encode(src * extend_mask, src_mask, ner_mask)
 
         #print(memory.size())
         
@@ -90,9 +90,9 @@ class Encoder(nn.Module):
         self.layers = nn.ModuleList([EncoderLayer(h, d_model, with_focus_attn, ff, dropout) for _ in range(N)])
         self.norm = LayerNorm(d_model)
 
-    def forward(self, x, mask):
+    def forward(self, x, mask, ner_mask):
         for layer in self.layers:
-            x = layer(x, mask)
+            x = layer(x, mask, ner_mask)
         return self.norm(x)
 
 
@@ -164,8 +164,8 @@ class EncoderLayer(nn.Module):
         self.sublayer = clones(SublayerConnection(size, dropout), 2)
         self.size = size
 
-    def forward(self, x, mask):
-        x = self.sublayer[0](x, lambda x: self.self_attn(x, x, x, mask)[0])
+    def forward(self, x, mask, ner_mask):
+        x = self.sublayer[0](x, lambda x: self.self_attn(x, x, x, mask, ner_mask)[0])
         return self.sublayer[1](x, self.feed_forward)
 
 

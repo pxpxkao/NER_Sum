@@ -67,7 +67,6 @@ def make_dict(max_num, dict_path, train_path, target_path):
     word2id['__UNK__'] = len(word2id)
     word_count_list = sorted(word_count.items(), key=operator.itemgetter(1))
     for item in word_count_list[-(max_num*2):][::-1]:
-        
 
         if item[1] < word_count_list[-max_num][1]:
             continue
@@ -79,6 +78,11 @@ def make_dict(max_num, dict_path, train_path, target_path):
 
     return word2id
 
+## Add NER mask to attention layer (whether is top 10?)
+## (done)step 1: read ner file (preprocess -> count top10 -> save to train.top10)
+## (done)step 2: add batch['ner_mask']
+## step 3: attention layer count NER mask on focus bias score
+## Done
 
 class data_utils():
     def __init__(self, args):
@@ -107,16 +111,19 @@ class data_utils():
         # self.pad = self.word2id['__UNK__']
 
 
-    def text2id(self, text, seq_length, oov_list = []):
+    def text2id(self, text, top_ner, seq_length, oov_list = []):
         vec = np.zeros([seq_length] ,dtype=np.int32)
         vec_extended = np.zeros([seq_length] ,dtype=np.int32)
+        ner_mask = np.zeros([seq_length] ,dtype=np.float)
 
-        # unknown = 0.
         word_list = text.strip().split()
+        top_list = top_ner.strip().split()
         length = len(word_list)
         for i,word in enumerate(word_list):
             if i >= seq_length:
                 break
+            if word in top_list:
+                ner_mask[i] = 1
             if word in self.word2id:
                 vec[i] = self.word2id[word]
                 vec_extended[i] = self.word2id[word]
@@ -128,41 +135,28 @@ class data_utils():
                     vec_extended[i] = self.vocab_size + len(oov_list)
                     oov_list.append(word)
                 
-                # unknown += 1
-
-        # if unknown / length > 0.1 or length > seq_length*1.5:
-        #     vec = None
-        # if self.train:
-        #     if length == 0:
-        #         vec = None
-        #         print('damn') 
-        #         return vec
-        #     if unknown / length > 0.2 or length > seq_length*1.22:
-        #         print('fuck')
-        #         print(length, ' ', unknown, ' ' , seq_length)
-        #         vec = None
-        # print('oov', oov_list)
-        # print(vec_extended)
-        return vec, vec_extended, oov_list
+        return vec, vec_extended, oov_list, ner_mask
 
 
-    def data_yielder(self, src_file, tgt_file, num_epoch = 100):
+    def data_yielder(self, src_file, tgt_file, topk_file, num_epoch = 100):
         print(src_file)
         print(tgt_file)
+        print(topk_file)
         print(self.batch_size)
         src_length = 400
         tgt_length = 100
         if self.train:
-            batch = {'src':[],'tgt':[],'src_mask':[],'tgt_mask':[],'y':[], 'src_extended':[], 'oov_list':[]}
+            batch = {'src':[],'tgt':[],'src_mask':[],'tgt_mask':[],'y':[], 'src_extended':[], 'oov_list':[], 'ner_mask':[]}
             oov_list = []
             for epo in range(num_epoch):
                 start_time = time.time()
                 print("start epo %d" % (epo))
                 
-                for line1,line2 in zip(open(src_file),open(tgt_file)):
-                    vec1, vec1_extended, oov_list = self.text2id(line1.strip(), src_length, oov_list)
-                    vec2, vec2_extended, oov_list = self.text2id(line2.strip(), tgt_length, oov_list)
+                for line1,line2,line3 in zip(open(src_file),open(tgt_file),open(topk_file)):
+                    vec1, vec1_extended, oov_list, ner_mask = self.text2id(line1.strip(), line3.strip(), src_length, oov_list)
+                    vec2, vec2_extended, oov_list, _ = self.text2id(line2.strip(), "", tgt_length, oov_list)
                     # print('===============')
+
 
                     if vec1 is not None and vec2 is not None:
                         batch['src'].append(vec1)
@@ -171,6 +165,7 @@ class data_utils():
                         batch['tgt'].append(np.concatenate([[self.bos],vec2], axis=0)[:-1])
                         batch['tgt_mask'].append(self.subsequent_mask(vec2))
                         batch['y'].append(vec2_extended)
+                        batch['ner_mask'].append(ner_mask)
 
                         if len(batch['src']) == self.batch_size:
                             batch = {k: (cc(v) if k != 'oov_list' else v) for k, v in batch.items()}
@@ -180,20 +175,20 @@ class data_utils():
                             vec1 = None
                             vec2 = None
                             yield batch
-                            batch = {'src':[],'tgt':[],'src_mask':[],'tgt_mask':[],'y':[], 'src_extended':[], 'oov_list':[]}
+                            batch = {'src':[],'tgt':[],'src_mask':[],'tgt_mask':[],'y':[], 'src_extended':[], 'oov_list':[], 'ner_mask':[]}
                             oov_list = []
                             #batch = {'src':[]}
                 end_time = time.time()
                 print('finish epo %d, time %f' % (epo,end_time-start_time))
 
         else:
-            batch = {'src':[], 'src_mask':[], 'src_extended':[], 'oov_list':[]}
+            batch = {'src':[], 'src_mask':[], 'src_extended':[], 'oov_list':[], 'ner_mask':[]}
             for epo in range(1):
                 start_time = time.time()
                 print("start epo %d" % (epo))
                 index = 0
                 oov_list = []
-                for line1 in open(src_file):
+                for line1, line2 in zip(open(src_file), open(topk_file)):
                     index += 1
                     vec1, vec1_extended, oov_list = self.text2id(line1.strip(), 400)
                     
@@ -201,13 +196,13 @@ class data_utils():
                         batch['src'].append(vec1)
                         batch['src_extended'].append(vec1_extended)
                         batch['src_mask'].append(np.expand_dims(vec1 != self.eos, -2).astype(np.float))
-                        # batch['oov_list'].append(oov_list)
+                        batch['ner_mask'].append(ner_mask)
                         if len(batch['src']) == self.batch_size:
                             batch = {k: (cc(v) if k != 'oov_list' else v) for k, v in batch.items()}
                             batch['oov_list'] = oov_list
                             torch.cuda.synchronize()
                             yield batch
-                            batch = {'src':[], 'src_mask':[], 'src_extended':[], 'oov_list':[]}
+                            batch = {'src':[], 'src_mask':[], 'src_extended':[], 'oov_list':[], 'ner_mask':[]}
                             oov_list = []
                 batch = {k: (cc(v) if k != 'oov_list' else v) for k, v in batch.items()}
                 batch['oov_list'] = oov_list

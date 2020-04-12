@@ -52,7 +52,7 @@ class Solver():
 
     def train(self):
 
-        data_yielder = self.data_utils.data_yielder(self.args.train_file, self.args.tgt_file)
+        data_yielder = self.data_utils.data_yielder(self.args.train_file, self.args.tgt_file, self.args.train_topk_file)
         optim = torch.optim.Adam(self.model.parameters(), lr=1e-7, betas=(0.9, 0.998), eps=1e-8, amsgrad=True)#get_std_opt(self.model)
         total_loss = []
         start = time.time()
@@ -82,7 +82,7 @@ class Solver():
             # print(batch['oov_list'])
 
             out = self.model.forward(batch['src'], batch['tgt'], 
-                            batch['src_mask'], batch['tgt_mask'], batch['src_extended'], len(batch['oov_list']))
+                            batch['src_mask'], batch['tgt_mask'], batch['src_extended'], len(batch['oov_list']), batch['ner_mask'])
             pred = out.topk(1, dim=-1)[1].squeeze().detach().cpu().numpy()[0]
             gg = batch['src_extended'].long().detach().cpu().numpy()[0][:100]
             tt = batch['tgt'].long().detach().cpu().numpy()[0]
@@ -104,9 +104,9 @@ class Solver():
                 print('pred:\n',self.data_utils.id2sent(pred, False, False, batch['oov_list']))
                 print('oov_list:\n', batch['oov_list'])
 
-                pp =  self.model.greedy_decode(batch['src_extended'].long()[:1], batch['src_mask'][:1], 100, self.data_utils.bos, len(batch['oov_list']), self.data_utils.vocab_size)
+                pp =  self.model.greedy_decode(batch['src_extended'].long()[:1], batch['src_mask'][:1], 100, self.data_utils.bos, len(batch['oov_list']), self.data_utils.vocab_size, batch['ner_mask'][:1])
                 pp = pp.detach().cpu().numpy()
-                print('pred_greedy:\n',self.data_utils.id2sent(pp[0], False, False, batch['oov_list']))
+                print('pred_greedy:\n',self.data_utils.id2sent(pp[0], False, False, len(batch['oov_list'])))
                 
                 print()
                 start = time.time()
@@ -116,7 +116,7 @@ class Solver():
                 
             if step % 100000 == 2:
                 self.model.eval()
-                val_yielder = self.data_utils.data_yielder(self.args.valid_file, self.args.valid_tgt_file, 1)
+                val_yielder = self.data_utils.data_yielder(self.args.valid_file, self.args.valid_tgt_file, self.arg.valid_topk_file, 1)
                 total_loss = []
                 for batch in val_yielder:
                     batch['src'] = batch['src'].long()
@@ -124,7 +124,7 @@ class Solver():
                     batch['src_extended'] = batch['src_extended'].long()
                     # print(len(batch['oov_list']))
                     out = self.model.forward(batch['src'], batch['tgt'], 
-                            batch['src_mask'], batch['tgt_mask'], batch['src_extended'], len(batch['oov_list']))
+                            batch['src_mask'], batch['tgt_mask'], batch['src_extended'], len(batch['oov_list']), batch['ner_mask'])
                     loss = self.model.loss_compute(out, batch['y'].long())
                     total_loss.append(loss.item())
                 print('=============================================')
@@ -158,7 +158,7 @@ class Solver():
         filename = self.args.filename
 
         #start decoding
-        data_yielder = self.data_utils.data_yielder(self.args.test_file, self.args.test_file)
+        data_yielder = self.data_utils.data_yielder(self.args.test_file, self.args.test_file, self.args.test_topk_file)
         total_loss = []
         start = time.time()
 
@@ -175,7 +175,7 @@ class Solver():
                 print('%d batch processed. Time elapsed: %f min.' %(step, (time.time() - start)/60.0))
                 start = time.time()
             if self.args.beam_size == 1:
-                out = self.model.greedy_decode(batch['src'].long(), batch['src_mask'], max_len, self.data_utils.bos, len(batch['oov_list']), self.data_utils.vocab_size)
+                out = self.model.greedy_decode(batch['src'].long(), batch['src_mask'], max_len, self.data_utils.bos, len(batch['oov_list']), self.data_utils.vocab_size, batch_size['ner_mask'])
             else:
                 out = self.beam_decode(batch, max_len, len(batch['oov_list']))
             #print(out)
