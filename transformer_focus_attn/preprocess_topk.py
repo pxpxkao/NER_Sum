@@ -12,7 +12,7 @@ Usage :
 
 def count_topk(src_file, ner_file, K=10):
     topk = []
-    for src, ner in tqdm(zip(open(src_file), open(ner_file))):
+    for src, ner in tqdm(zip(open(src_file, encoding='utf-8'), open(ner_file, encoding='utf-8'))):
         src, ner = src.split(), ner.split()
         assert len(src) == len(ner)
 
