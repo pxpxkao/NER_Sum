@@ -28,9 +28,9 @@ def count_topk(src_file, ner_file, K=10):
 
         if len(topk_dict) < K:
             print("Length of topk dict is not enough...")
-            break
-        
-        t = [ k for k, v in sorted(topk_dict.items(), key=lambda x: x[1], reverse=True)][:K]
+            t = [ k for k, v in sorted(topk_dict.items(), key=lambda x: x[1], reverse=True)][:len(topk_dict)]
+        else:
+            t = [ k for k, v in sorted(topk_dict.items(), key=lambda x: x[1], reverse=True)][:K]
         topk.append(' '.join(t))
 
     return topk
@@ -40,7 +40,7 @@ if __name__ == '__main__':
     src_file, ner_file, k = args[1], args[2], int(args[4])
     top = count_topk(src_file, ner_file, K=k)
     # print(top)
-    with open(args[3], 'w') as f:
+    with open(args[3], 'w', encoding='utf-8') as f:
         for t in top:
             f.write(t)
             f.write('\n')
