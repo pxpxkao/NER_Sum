@@ -103,7 +103,7 @@ class Solver():
                 print('tgt:\n',self.data_utils.id2sent(yy, False, False, batch['oov_list']))
                 print('pred:\n',self.data_utils.id2sent(pred, False, False, batch['oov_list']))
                 # print('oov_list:\n', batch['oov_list'])
-                print('ner_mask:\n',batch['ner_mask'][:80])
+                print('ner_mask shape:',batch['ner_mask'].size())
 
                 pp =  self.model.greedy_decode(batch['src_extended'].long()[:1], batch['src_mask'][:1], 100, self.data_utils.bos, len(batch['oov_list']), self.data_utils.vocab_size, batch['ner_mask'][:1])
                 pp = pp.detach().cpu().numpy()
