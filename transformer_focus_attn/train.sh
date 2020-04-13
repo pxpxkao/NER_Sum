@@ -1,2 +1,2 @@
 #!/bin/bash
-python3 main.py -max_len 100  
+PYTHONIOENCODING=utf-8 python main.py -train -logfile train.log -exp_name train -pointer_gen True -batch_size 4 
