@@ -102,7 +102,7 @@ class Solver():
                 print('src:\n',self.data_utils.id2sent(gg, False, False, batch['oov_list']))
                 print('tgt:\n',self.data_utils.id2sent(yy, False, False, batch['oov_list']))
                 print('pred:\n',self.data_utils.id2sent(pred, False, False, batch['oov_list']))
-                print('oov_list:\n', batch['oov_list'])
+                # print('oov_list:\n', batch['oov_list'])
 
                 pp =  self.model.greedy_decode(batch['src_extended'].long()[:1], batch['src_mask'][:1], 100, self.data_utils.bos, len(batch['oov_list']), self.data_utils.vocab_size, batch['ner_mask'][:1])
                 pp = pp.detach().cpu().numpy()
@@ -116,7 +116,7 @@ class Solver():
                 
             if step % 100000 == 2:
                 self.model.eval()
-                val_yielder = self.data_utils.data_yielder(self.args.valid_file, self.args.valid_tgt_file, self.arg.valid_topk_file, 1)
+                val_yielder = self.data_utils.data_yielder(self.args.valid_file, self.args.valid_tgt_file, self.args.valid_topk_file, 1)
                 total_loss = []
                 for batch in val_yielder:
                     batch['src'] = batch['src'].long()
@@ -163,7 +163,7 @@ class Solver():
         start = time.time()
 
         #file
-        f = open(os.path.join(pred_dir, filename), 'w')
+        f = open(os.path.join(pred_dir, filename), 'w', encoding='utf-8')
 
         self.model.eval()
             
@@ -175,7 +175,7 @@ class Solver():
                 print('%d batch processed. Time elapsed: %f min.' %(step, (time.time() - start)/60.0))
                 start = time.time()
             if self.args.beam_size == 1:
-                out = self.model.greedy_decode(batch['src'].long(), batch['src_mask'], max_len, self.data_utils.bos, len(batch['oov_list']), self.data_utils.vocab_size, batch_size['ner_mask'])
+                out = self.model.greedy_decode(batch['src'].long(), batch['src_mask'], max_len, self.data_utils.bos, len(batch['oov_list']), self.data_utils.vocab_size, batch['ner_mask'])
             else:
                 out = self.beam_decode(batch, max_len, len(batch['oov_list']))
             #print(out)
