@@ -27,7 +27,6 @@ def count_topk(src_file, ner_file, K=10):
         for w in delete: del topk_dict[w]
 
         if len(topk_dict) < K:
-            print("Length of topk dict is not enough...")
             t = [ k for k, v in sorted(topk_dict.items(), key=lambda x: x[1], reverse=True)][:len(topk_dict)]
         else:
             t = [ k for k, v in sorted(topk_dict.items(), key=lambda x: x[1], reverse=True)][:K]
