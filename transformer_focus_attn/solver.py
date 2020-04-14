@@ -65,8 +65,7 @@ class Solver():
         warmup_steps = 10000
         d_model = 512
         lr = 1e-7
-        #path = torch.load("./train_model/10w_model.pth")
-        #self.model.load_state_dict(path, strict = False)
+
         for step in range(1000000):
             self.model.train()
             batch = data_yielder.__next__()
@@ -116,36 +115,39 @@ class Solver():
                 
                 
             if step % 100000 == 2:
-                self.model.eval()
-                val_yielder = self.data_utils.data_yielder(self.args.valid_file, self.args.valid_tgt_file, self.args.valid_topk_file, 1)
-                total_loss = []
-                for batch in val_yielder:
-                    batch['src'] = batch['src'].long()
-                    batch['tgt'] = batch['tgt'].long()
-                    batch['src_extended'] = batch['src_extended'].long()
-                    # print(len(batch['oov_list']))
-                    out = self.model.forward(batch['src'], batch['tgt'], 
-                            batch['src_mask'], batch['tgt_mask'], batch['src_extended'], len(batch['oov_list']), batch['ner_mask'])
-                    loss = self.model.loss_compute(out, batch['y'].long())
-                    total_loss.append(loss.item())
-                print('=============================================')
-                print('Validation Result -> Loss : %6.6f' %(sum(total_loss)/len(total_loss)))
-                print('=============================================')
-                self.outfile.write('=============================================\n')
-                self.outfile.write('Validation Result -> Loss : %6.6f\n' %(sum(total_loss)/len(total_loss)))
-                self.outfile.write('=============================================\n')
-                # self.model.train()
-                self.log.add_scalar('Loss/valid', sum(total_loss)/len(total_loss), step)
+                with torch.no_grad():
+                    self.model.eval()
+                    val_yielder = self.data_utils.data_yielder(self.args.valid_file, self.args.valid_tgt_file, self.args.valid_topk_file, 1)
+                    total_loss = []
+                    with torch.no_grad():
+                    for batch in val_yielder:
+                        batch['src'] = batch['src'].long()
+                        batch['tgt'] = batch['tgt'].long()
+                        batch['src_extended'] = batch['src_extended'].long()
+                        # print(len(batch['oov_list']))
+                        out = self.model.forward(batch['src'], batch['tgt'], 
+                                batch['src_mask'], batch['tgt_mask'], batch['src_extended'], len(batch['oov_list']), batch['ner_mask'])
+                        loss = self.model.loss_compute(out, batch['y'].long())
+                        total_loss.append(loss.item())
+                    print('=============================================')
+                    print('Validation Result -> Loss : %6.6f' %(sum(total_loss)/len(total_loss)))
+                    print('=============================================')
+                    self.outfile.write('=============================================\n')
+                    self.outfile.write('Validation Result -> Loss : %6.6f\n' %(sum(total_loss)/len(total_loss)))
+                    self.outfile.write('=============================================\n')
+                    # self.model.train()
+                    self.log.add_scalar('Loss/valid', sum(total_loss)/len(total_loss), step)
 
-                w_step = int(step/100000)
-                if self.args.load_model:
-                    w_step += (int(self.args.load_model.split('/')[-1][0]))
-                print('Saving ' + str(w_step) + '0w_model.pth!\n')
-                self.outfile.write('Saving ' + str(w_step) + '0w_model.pth\n')
-                model_name = str(w_step) + '0w_' + '%6.6f'%(sum(total_loss)/len(total_loss)) + 'model.pth'
-                state = {'step': step, 'state_dict': self.model.state_dict()}
+                    w_step = int(step/100000)
+                    if self.args.load_model:
+                        w_step += (int(self.args.load_model.split('/')[-1][0]))
+                    print('Saving ' + str(w_step) + '0w_model.pth!\n')
+                    self.outfile.write('Saving ' + str(w_step) + '0w_model.pth\n')
+                    model_name = str(w_step) + '0w_' + '%6.6f'%(sum(total_loss)/len(total_loss)) + 'model.pth'
+                    state = {'step': step, 'state_dict': self.model.state_dict()}
 
-                torch.save(state, os.path.join(self.model_dir, model_name))
+                    torch.save(state, os.path.join(self.model_dir, model_name))
+                self.model.train()
 
 
     def test(self):
@@ -165,26 +167,25 @@ class Solver():
 
         #file
         f = open(os.path.join(pred_dir, filename), 'w', encoding='utf-8')
-
-        self.model.eval()
-            
-        step = 0
-        for batch in data_yielder:
-            #print(batch['src'].data.size())
-            step += 1
-            if step % 100 == 0:
-                print('%d batch processed. Time elapsed: %f min.' %(step, (time.time() - start)/60.0))
-                start = time.time()
-            if self.args.beam_size == 1:
-                out = self.model.greedy_decode(batch['src'].long(), batch['src_mask'], max_len, self.data_utils.bos, len(batch['oov_list']), self.data_utils.vocab_size, batch['ner_mask'])
-            else:
-                out = self.beam_decode(batch, max_len, len(batch['oov_list']))
-            #print(out)
-            for l in out:
-                sentence = self.data_utils.id2sent(l[1:], True, self.args.beam_size!=1, batch['oov_list'])
-                #print(l[1:])
-                f.write(sentence)
-                f.write("\n")
+        with torch.no_grad():
+            self.model.eval()
+            step = 0
+            for batch in data_yielder:
+                #print(batch['src'].data.size())
+                step += 1
+                if step % 100 == 0:
+                    print('%d batch processed. Time elapsed: %f min.' %(step, (time.time() - start)/60.0))
+                    start = time.time()
+                if self.args.beam_size == 1:
+                    out = self.model.greedy_decode(batch['src'].long(), batch['src_mask'], max_len, self.data_utils.bos, len(batch['oov_list']), self.data_utils.vocab_size, batch['ner_mask'])
+                else:
+                    out = self.beam_decode(batch, max_len, len(batch['oov_list']))
+                #print(out)
+                for l in out:
+                    sentence = self.data_utils.id2sent(l[1:], True, self.args.beam_size!=1, batch['oov_list'])
+                    #print(l[1:])
+                    f.write(sentence)
+                    f.write("\n")
 
 
     def beam_decode(self, batch, max_len, oov_nums):
