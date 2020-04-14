@@ -119,7 +119,6 @@ class Solver():
                     self.model.eval()
                     val_yielder = self.data_utils.data_yielder(self.args.valid_file, self.args.valid_tgt_file, self.args.valid_topk_file, 1)
                     total_loss = []
-                    with torch.no_grad():
                     for batch in val_yielder:
                         batch['src'] = batch['src'].long()
                         batch['tgt'] = batch['tgt'].long()
