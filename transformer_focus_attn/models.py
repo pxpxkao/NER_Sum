@@ -55,8 +55,13 @@ class EncoderDecoder(nn.Module):
                                         .type_as(src.data).expand((ys.size(0), ys.size(1), ys.size(1)))), src, oov_nums)
 
             _, next_word = torch.max(log_prob, dim = -1)
-
             next_word = next_word.data[:,-1]
+            unk_mask = (next_word == 2).long()
+
+            _, second = torch.topk(log_prob, 2, dim = -1)
+            second = second[:, -1, 1]
+
+            next_word = (1-unk_mask) * next_word + unk_mask * second
             ret = torch.cat([ret, 
                             (torch.zeros(src.size()[0], 1).type_as(src.data)) + (next_word.view(-1, 1))], dim=1)
 
