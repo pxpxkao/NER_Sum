@@ -190,7 +190,7 @@ class data_utils():
                 oov_list = []
                 for line1, line2 in zip(open(src_file, encoding='utf-8'), open(topk_file, encoding='utf-8')):
                     index += 1
-                    vec1, vec1_extended, oov_list = self.text2id(line1.strip(), 400)
+                    vec1, vec1_extended, oov_list = self.text2id(line1.strip(), line2.strip(), 400)
                     
                     if vec1 is not None:
                         batch['src'].append(vec1)
