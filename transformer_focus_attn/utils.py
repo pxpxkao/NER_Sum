@@ -240,8 +240,7 @@ class data_utils():
                         if test and (index.item() == self.word2id['__EOS__'] or index.item() in word_dict):
                             continue
                         sent.append(self.index2word[index.item()])
-
-            word_dict[index.item()] = 1
+                word_dict[index.item()] = 1
 
         return ' '.join(sent)
 
