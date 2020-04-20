@@ -176,7 +176,7 @@ class Solver():
                     print('%d batch processed. Time elapsed: %f min.' %(step, (time.time() - start)/60.0))
                     start = time.time()
                 if self.args.beam_size == 1:
-                    out = self.model.greedy_decode(batch['src'].long(), batch['src_mask'], max_len, self.data_utils.bos, len(batch['oov_list']), self.data_utils.vocab_size, batch['ner_mask'])
+                    out = self.model.greedy_decode(batch['src_extended'].long(), batch['src_mask'], max_len, self.data_utils.bos, len(batch['oov_list']), self.data_utils.vocab_size, batch['ner_mask'])
                 else:
                     out = self.beam_decode(batch, max_len, len(batch['oov_list']))
                 #print(out)
