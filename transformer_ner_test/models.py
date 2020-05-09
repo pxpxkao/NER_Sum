@@ -34,14 +34,14 @@ class NER_CNN(nn.Module):
         self.conv = nn.Conv1d(in_channels=in_, out_channels=out_, kernel_size=kernel_)
         self.fc = nn.Linear(out_, num_class)
     def forward(self, embedding):
-        print("Embedding Size:", embedding.size())
+        # print("Embedding Size:", embedding.size())
         pad_row = torch.zeros([embedding.size(0), self.kernel_size//2, embedding.size(2)]).type_as(embedding.data)
         emb = torch.cat([pad_row, embedding, pad_row], dim=1)
         emb = emb.permute(0, 2, 1)
         fc = self.conv(emb).permute(0, 2, 1)
         # print(fc.size())
         out = F.log_softmax(self.fc(fc), dim=-1)
-        print("Out Size:", out.size())
+        # print("Out Size:", out.size())
         return out
     def loss_compute(self, out, y):
         true_dist = out.data.clone()
