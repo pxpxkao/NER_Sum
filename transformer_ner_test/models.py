@@ -217,5 +217,5 @@ class DecoderLayer(nn.Module):
 
 if __name__ == '__main__':
     model = NER_CNN().cuda()
-    embedding = torch.randn([8, 400, 512])
+    embedding = torch.randn([8, 400, 512]).cuda()
     model(embedding)
