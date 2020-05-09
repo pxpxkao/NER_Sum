@@ -123,9 +123,9 @@ class Solver():
 
                 if min_loss > sum(total_loss)/len(total_loss):
                     min_loss = sum(total_loss)/len(total_loss)
-                    print('Saving ' + str(step) + '_model.pth!\n')
-                    self.outfile.write('Saving ' + str(step) + '_model.pth\n')
-                    model_name = str(step) + '_' + '%6.6f'%(sum(total_loss)/len(total_loss)) + 'model.pth'
+                    print('Saving ' + str(step//10000) + 'w_model.pth!\n')
+                    self.outfile.write('Saving ' + str(step//10000) + 'w_model.pth\n')
+                    model_name = str(step//10000) + 'w_' + '%6.6f'%(sum(total_loss)/len(total_loss)) + 'model.pth'
                     state = {'step': step, 'state_dict': self.model.state_dict()}
 
                     torch.save(state, os.path.join(self.model_dir, model_name))
