@@ -39,9 +39,9 @@ class NER_CNN(nn.Module):
         emb = torch.cat([pad_row, embedding, pad_row], dim=1)
         emb = emb.permute(0, 2, 1)
         fc = self.conv(emb).permute(0, 2, 1)
-        # print(fc.size())
+        print(fc.size())
         out = F.log_softmax(self.fc(fc), dim=-1)
-        # print("Out Size:", out.size())
+        print("Out Size:", out.size())
         return out
     def loss_compute(self, out, y):
         true_dist = out.data.clone()
