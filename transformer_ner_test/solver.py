@@ -166,13 +166,13 @@ class Solver():
             out = self.model.forward(embedding)
             
             out = torch.argmax(out, dim = 2)
-            print('out size:', out.size())
+            #print('out size:', out.size())
 
             for i in range(out.size(0)):
                 nonz = torch.nonzero(batch['src_mask'][i])
                 #print(nonz)
                 idx = nonz[-1][1].item()+1
-                print('non zero idx:', idx)
+                #print('non zero idx:', idx)
                 sentence = self.data_utils.id2label(out[i][:idx], True)
                 #print(l[1:])
                 f.write(sentence)

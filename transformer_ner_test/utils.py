@@ -189,14 +189,16 @@ class data_utils():
                 continue
             sent.append(self.index2word[index])
             word_dict[index] = 1
-        print("id2sent:", len(sent))
+        if not test:
+            print("id2sent:", len(sent))
         return ' '.join(sent)
 
     def id2label(self, indices, test=False):
         sent = []
         for index in indices:
             sent.append(self.index2label[index])
-        print("id2label:", len(sent))
+        if not test:
+            print("id2label:", len(sent))
         return ' '.join(sent)
 
     def subsequent_mask(self, vec):
