@@ -40,8 +40,9 @@ class Solver():
                 word_embed,
                 word_embed)
 
-            generator = Linear(d_model, 19)
-            model = NER_Linear(generator)
+            # generator = Linear(d_model, 19)
+            # model = NER_Linear(generator)
+            model = NER_CNN()
             
             # This was important from their code. 
             # Initialize parameters with Glorot / fan_avg.
@@ -123,9 +124,9 @@ class Solver():
 
                 if min_loss > sum(total_loss)/len(total_loss):
                     min_loss = sum(total_loss)/len(total_loss)
-                    print('Saving ' + str(step//10000) + 'w_model.pth!\n')
-                    self.outfile.write('Saving ' + str(step//10000) + 'w_model.pth\n')
-                    model_name = str(step//10000) + 'w_' + '%6.6f'%(sum(total_loss)/len(total_loss)) + 'model.pth'
+                    print('Saving ' + str(step//10000) + 'w_cnn_model.pth!\n')
+                    self.outfile.write('Saving ' + str(step//10000) + 'w_cnn_model.pth\n')
+                    model_name = str(step//10000) + 'w_' + '%6.6f'%(sum(total_loss)/len(total_loss)) + 'cnn_model.pth'
                     state = {'step': step, 'state_dict': self.model.state_dict()}
 
                     torch.save(state, os.path.join(self.model_dir, model_name))

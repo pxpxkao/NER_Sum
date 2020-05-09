@@ -27,6 +27,29 @@ class Linear(nn.Module):
     def forward(self, x):
         return F.log_softmax(self.proj(x), dim=-1)
 
+class NER_CNN(nn.Module):
+    def __init__(self, in_=512, out_=128, kernel_=3, num_class=19):
+        super(NER_CNN, self).__init__()
+        self.kernel_size = kernel_
+        self.conv = nn.Conv1d(in_channels=in_, out_channels=out_, kernel_size=kernel_)
+        self.fc = nn.Linear(out_, num_class)
+    def forward(self, embedding):
+        print("Embedding Size:", embedding.size())
+        pad_row = torch.zeros([embedding.size(0), self.kernel_size//2, embedding.size(2)])
+        emb = torch.cat([pad_row, embedding, pad_row], dim=1)
+        emb = emb.permute(0, 2, 1)
+        fc = self.conv(emb).permute(0, 2, 1)
+        # print(fc.size())
+        out = F.log_softmax(self.fc(fc), dim=-1)
+        # print("Out Size:", out.size())
+        return out
+    def loss_compute(self, out, y):
+        true_dist = out.data.clone()
+        true_dist.fill_(0.)
+        true_dist.scatter_(2, y.unsqueeze(2), 1.)
+        true_dist[:,:,0] *= 0.01
+        return -(true_dist*out).sum(dim=2).mean()
+
 class EncoderDecoder(nn.Module):
     """
     A standard Encoder-Decoder architecture. Base for this and many 
@@ -191,3 +214,8 @@ class DecoderLayer(nn.Module):
         x = self.sublayer[1](x, lambda x: self.src_attn(x, m, m, src_mask)[0])
         #x = self.sublayer[1](x, lambda x: self.src_attn(x, m, m, src_mask))
         return self.sublayer[2](x, self.feed_forward), attn_dist
+
+if __name__ == '__main__':
+    model = NER_CNN()
+    embedding = torch.randn([8, 400, 512])
+    model(embedding)
