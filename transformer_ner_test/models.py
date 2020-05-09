@@ -35,7 +35,7 @@ class NER_CNN(nn.Module):
         self.fc = nn.Linear(out_, num_class)
     def forward(self, embedding):
         print("Embedding Size:", embedding.size())
-        pad_row = torch.zeros([embedding.size(0), self.kernel_size//2, embedding.size(2)])
+        pad_row = torch.zeros([embedding.size(0), self.kernel_size//2, embedding.size(2)]).type_as(embedding.data)
         emb = torch.cat([pad_row, embedding, pad_row], dim=1)
         emb = emb.permute(0, 2, 1)
         fc = self.conv(emb).permute(0, 2, 1)
@@ -216,6 +216,6 @@ class DecoderLayer(nn.Module):
         return self.sublayer[2](x, self.feed_forward), attn_dist
 
 if __name__ == '__main__':
-    model = NER_CNN()
+    model = NER_CNN().cuda()
     embedding = torch.randn([8, 400, 512])
     model(embedding)
