@@ -41,10 +41,10 @@ class Solver():
                 word_embed)
 
             # Linear Model:
-            generator = Linear(d_model, 19)
-            model = NER_Linear(generator)
+            # generator = Linear(d_model, 19)
+            # model = NER_Linear(generator)
             # CNN Model
-            # model = NER_CNN()
+            model = NER_CNN()
             
             # This was important from their code. 
             # Initialize parameters with Glorot / fan_avg.
