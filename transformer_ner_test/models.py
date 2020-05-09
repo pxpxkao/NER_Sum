@@ -41,7 +41,7 @@ class NER_CNN(nn.Module):
         fc = self.conv(emb).permute(0, 2, 1)
         print(fc.size())
         out = F.log_softmax(self.fc(fc), dim=-1)
-        print("Out Size:", out.size())
+        print("Out Size:", out)
         return out
     def loss_compute(self, out, y):
         true_dist = out.data.clone()
