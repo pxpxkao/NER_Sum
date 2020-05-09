@@ -1,0 +1,1 @@
+{"O": 0, "GPE": 1, "ORG": 2, "NORP": 3, "CARDINAL": 4, "DATE": 5, "PERSON": 6, "TIME": 7, "LOC": 8, "PRODUCT": 9, "PERCENT": 10, "FAC": 11, "ORDINAL": 12, "QUANTITY": 13, "WORK_OF_ART": 14, "MONEY": 15, "EVENT": 16, "LAW": 17, "LANGUAGE": 18}
