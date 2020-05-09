@@ -82,10 +82,10 @@ class Solver():
         for step in range(1000002):
             self.model.train()
             batch = data_yielder.__next__()
-            if step % 100 == 1:
-                lr = (1/(d_model**0.5))*min((1/step**0.5), step * (1/(warmup_steps**1.5)))
-                for param_group in optim.param_groups:
-                    param_group['lr'] = lr
+            # if step % 100 == 1:
+            #     lr = (1/(d_model**0.5))*min((1/step**0.5), step * (1/(warmup_steps**1.5)))
+            #     for param_group in optim.param_groups:
+            #         param_group['lr'] = lr
 
             embedding = self.emb_model.encode_emb(batch['src'].long())
             # embedding = self.emb_model.encode(batch['src'].long(), batch['src_mask'])
