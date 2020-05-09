@@ -107,9 +107,12 @@ class Solver():
                         (step, np.mean(total_loss), elapsed, optim.param_groups[0]['lr']))
                 self.outfile.write("Epoch Step: %d Loss: %f Time: %f\n" %
                         (step, np.mean(total_loss), elapsed))
-                print('src:\n',self.data_utils.id2sent(gg))
-                print('tgt:\n',self.data_utils.id2label(yy))
-                print('pred:\n',self.data_utils.id2label(pred))
+                try:
+                    print('src:\n',self.data_utils.id2sent(gg))
+                    print('tgt:\n',self.data_utils.id2label(yy))
+                    print('pred:\n',self.data_utils.id2label(pred))
+                except:
+                    pass
                 
                 print()
                 start = time.time()
