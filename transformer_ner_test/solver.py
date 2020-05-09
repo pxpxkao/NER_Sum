@@ -89,7 +89,7 @@ class Solver():
 
             embedding = self.emb_model.encode_emb(batch['src'].long())
             # embedding = self.emb_model.encode(batch['src'].long(), batch['src_mask'])
-            print("Embedding Size:", embedding.size())
+            # print("Embedding Size:", embedding.size())
             out = self.model.forward(embedding)
             k = 100
             pred = out.topk(1, dim=-1)[1].squeeze().detach().cpu().numpy()[0][:k]
