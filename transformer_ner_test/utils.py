@@ -52,11 +52,11 @@ def make_dict(max_num, dict_path, train_path, target_path):
     word2id = dict()
     line_count = 0
     
-    for line in tqdm(open(train_path)):
+    for line in tqdm(open(train_path, encoding='utf-8')):
         line_count += 1.0
         for word in line.split():
             word_count[word] = word_count.get(word,0) + 1
-    for line in tqdm(open(target_path)):
+    for line in tqdm(open(target_path, encoding='utf-8')):
         line_count += 1.0
         for word in line.split():
             word_count[word] = word_count.get(word,0) + 1
@@ -161,7 +161,7 @@ class data_utils():
             start_time = time.time()
             print("start epo %d" % (epo))
             
-            for line1,line2 in zip(open(src_file),open(tgt_file)):
+            for line1,line2 in zip(open(src_file, encoding='utf-8'),open(tgt_file, encoding='utf-8')):
                 vec1 = self.text2id(line1.strip(), src_length)
                 vec2 = self.text2id(line2.strip(), src_length)
 

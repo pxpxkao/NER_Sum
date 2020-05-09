@@ -149,7 +149,7 @@ class Solver():
         start = time.time()
 
         #file
-        f = open(os.path.join(pred_dir, filename), 'w')
+        f = open(os.path.join(pred_dir, filename), 'w', encoding='utf-8')
 
         self.model.eval()
         step = 0
