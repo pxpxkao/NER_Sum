@@ -78,11 +78,7 @@ def make_dict(max_num, dict_path, train_path, target_path):
     return word2id
 
 def make_labeldic(label_dic, label_map):
-    label2id = {}
-    for line in tqdm(open(label_map)):
-        label2id[line.split()[0]] = len(label2id)
-    with open(label_dic,'w') as fp:
-        json.dump(label2id, fp)
+    label2id = read_json(label_map)
     return label2id
 
 
@@ -91,7 +87,7 @@ class data_utils():
         self.batch_size = args.batch_size
         self.train = True if args.train else False
         dict_path = './dictionary.json'
-        labeldic_path = './label_dict.json'
+        labeldic_path = './label2index.json'
         self.train_path = args.train_file
         self.target_path = args.tgt_file
         if not self.train:
@@ -109,14 +105,15 @@ class data_utils():
         if os.path.exists(labeldic_path):
             self.label2id = read_json(labeldic_path)
         else:
-            self.label2id = make_labeldic(labeldic_path, './label-index.map')
-            print(self.label2id)
+            print("label2index.json doesn't exist!")
+            
         self.index2label = [[]]*len(self.label2id)
         for word in self.label2id:
             self.index2label[self.label2id[word]] = word
 
         self.vocab_size = len(self.word2id)
         print('vocab_size:',self.vocab_size)
+        print('label_dic:', self.label2id)
         self.eos = self.word2id['__EOS__']
         self.bos = self.word2id['__BOS__']
 
