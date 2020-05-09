@@ -66,6 +66,10 @@ class Solver():
             state_dict = torch.load(self.args.load_embmodel)['state_dict']
             self.emb_model.load_state_dict(state_dict)
             print("Loading model from " + self.args.load_embmodel + "...")
+        if self.args.load_model:
+            state_dict = torch.load(self.args.load_model)['state_dict']
+            self.model.load_state_dict(state_dict)
+            print("Loading model from " + self.args.load_model + "...")
 
         self.emb_model.eval()
         for step in range(1000002):
