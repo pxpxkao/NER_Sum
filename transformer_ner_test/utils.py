@@ -160,7 +160,7 @@ class data_utils():
             
             for line1,line2 in zip(open(src_file, encoding='utf-8'),open(tgt_file, encoding='utf-8')):
                 vec1 = self.text2id(line1.strip(), src_length)
-                vec2 = self.text2id(line2.strip(), src_length)
+                vec2 = self.labeltext2id(line2.strip(), src_length)
 
                 if vec1 is not None and vec2 is not None:
                     batch['src'].append(vec1)

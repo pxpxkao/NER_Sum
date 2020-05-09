@@ -16,6 +16,7 @@ class Solver():
         self.data_utils = data_utils(args)
 
         self.emb_model, self.model = self.make_model(self.data_utils.vocab_size, self.data_utils.vocab_size, args.num_layer, args.dropout)
+        print(self.emb_model)
         print(self.model)
         if self.args.train:
             self.outfile = open(self.args.logfile, 'w')
