@@ -16,8 +16,8 @@ class Solver():
         self.data_utils = data_utils(args)
 
         self.emb_model, self.model = self.make_model(self.data_utils.vocab_size, self.data_utils.vocab_size, args.num_layer, args.dropout)
-        print(self.emb_model)
-        print(self.model)
+        #print(self.emb_model)
+        #print(self.model)
         if self.args.train:
             self.outfile = open(self.args.logfile, 'w')
             self.model_dir = make_save_dir(args.model_dir)
@@ -62,7 +62,7 @@ class Solver():
         start = time.time()
         print('start training...')
         min_loss = 100000000000
-        if self.args.load_model:
+        if self.args.load_embmodel:
             state_dict = torch.load(self.args.load_embmodel)['state_dict']
             self.emb_model.load_state_dict(state_dict)
             print("Loading model from " + self.args.load_embmodel + "...")
