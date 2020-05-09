@@ -109,7 +109,7 @@ class data_utils():
         if os.path.exists(labeldic_path):
             self.label2id = read_json(labeldic_path)
         else:
-            self.label2id = make_labeldic(labeldic_path, './label-map.index')
+            self.label2id = make_labeldic(labeldic_path, './label-index.map')
             print(self.label2id)
         self.index2label = [[]]*len(self.label2id)
         for word in self.label2id:
