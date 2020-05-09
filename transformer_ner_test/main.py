@@ -29,6 +29,7 @@ def parse():
     parser.add_argument('-dropout', default = 0.5, type=float)
     parser.add_argument('-beam_size', default=1, type=int)
     parser.add_argument('-n_best', default=1, type=int)
+    parser.add_argument('-idx', default='linear', type=str)
     args = parser.parse_args()
     
     return args
