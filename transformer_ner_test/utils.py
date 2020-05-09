@@ -170,6 +170,7 @@ class data_utils():
                     if len(batch['src']) == self.batch_size:
                         batch = {k: cc(v) for k, v in batch.items()}
                         torch.cuda.synchronize()
+                        print('batch:', batch)
                         yield batch
                         batch = {'src':[],'src_mask':[],'y':[]}
             if not self.train:

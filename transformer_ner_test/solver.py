@@ -68,22 +68,23 @@ class Solver():
             print("Loading model from " + self.args.load_embmodel + "...")
 
         self.emb_model.eval()
-        for step in range(1000003):
+        for step in range(1000002):
             self.model.train()
             batch = data_yielder.__next__()
 
             embedding = self.emb_model.encode(batch['src'].long(), batch['src_mask'])
             out = self.model.forward(embedding)
-            pred = out.topk(1, dim=-1)[1].squeeze().detach().cpu().numpy()[0]
-            gg = batch['src'].long().detach().cpu().numpy()[0][:100]
-            yy = batch['y'].long().detach().cpu().numpy()[0][:100]
+            k = 100
+            pred = out.topk(1, dim=-1)[1].squeeze().detach().cpu().numpy()[0][:k]
+            gg = batch['src'].long().detach().cpu().numpy()[0][:k]
+            yy = batch['y'].long().detach().cpu().numpy()[0][:k]
             loss = self.model.loss_compute(out, batch['y'].long())
             loss.backward()
             optim.step()
             optim.zero_grad()
             total_loss.append(loss.detach().cpu().numpy())
             
-            if step % 2000 == 1:
+            if step % 500 == 1:
                 elapsed = time.time() - start
                 print("Epoch Step: %d Loss: %f Time: %f lr: %6.6f" %
                         (step, np.mean(total_loss), elapsed, optim.param_groups[0]['lr']))
@@ -98,7 +99,7 @@ class Solver():
                 self.log.add_scalar('Loss/train', np.mean(total_loss), step)
                 total_loss = []
                 
-            if step % 10000 == 2:
+            if step % 10000 == 1:
                 self.model.eval()
                 val_yielder = self.data_utils.data_yielder(self.args.valid_file, self.args.valid_ner_tgt_file, 1)
                 total_loss = []
@@ -152,6 +153,7 @@ class Solver():
         #file
         f = open(os.path.join(pred_dir, filename), 'w', encoding='utf-8')
 
+        self.emb_model.eval()
         self.model.eval()
         step = 0
         for batch in data_yielder:
@@ -164,11 +166,13 @@ class Solver():
             out = self.model.forward(embedding)
             
             out = torch.argmax(out, dim = 2)
+            print('out size:', out.size())
 
             for i in range(out.size(0)):
                 nonz = torch.nonzero(batch['src_mask'][i])
-                print(nonz)
+                #print(nonz)
                 idx = nonz[-1][1].item()
+                print('non zero idx:', idx)
                 sentence = self.data_utils.id2label(out[i][:idx], True)
                 #print(l[1:])
                 f.write(sentence)
