@@ -142,7 +142,7 @@ class Solver():
                     model_name = str(step//10000) + 'w_' + '%6.6f'%(sum(total_loss)/len(total_loss)) + 'model.pth'
                     state = {'step': step, 'state_dict': self.model.state_dict()}
 
-                    torch.save(state, os.path.join(self.idx_dir, model_name))
+                    torch.save(state, os.path.join(idx_dir, model_name))
                 else:
                     print('Valid Loss did not decrease on step', str(step))
                     self.outfile.write('Valid Loss did not decrease on step' + str(step) + '\n')
