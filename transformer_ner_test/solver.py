@@ -19,7 +19,6 @@ class Solver():
         #print(self.emb_model)
         print(self.model)
         if self.args.train:
-            self.outfile = open(self.args.logfile, 'w')
             self.model_dir = make_save_dir(args.model_dir)
             self.logfile = os.path.join(args.logdir, args.exp_name)
             self.log = SummaryWriter(self.logfile)
@@ -72,14 +71,16 @@ class Solver():
         if self.args.load_model:
             state_dict = torch.load(self.args.load_model)['state_dict']
             self.model.load_state_dict(state_dict)
+            min_loss = float(self.args.load_model.split('_')[1][:8])
             print("Loading model from " + self.args.load_model + "...")
-
+            print("Min Loss start from", min_loss)
+        start_step = int(self.args.load_model.split('_')[0][:2])
         warmup_steps = 10000
         d_model = 512
         lr = 1e-7
 
         self.emb_model.eval()
-        for step in range(1000002):
+        for step in range(start_step, 1000002):
             self.model.train()
             batch = data_yielder.__next__()
             # if step % 100 == 1:
@@ -87,8 +88,8 @@ class Solver():
             #     for param_group in optim.param_groups:
             #         param_group['lr'] = lr
 
-            embedding = self.emb_model.encode_emb(batch['src'].long())
-            # embedding = self.emb_model.encode(batch['src'].long(), batch['src_mask'])
+            # embedding = self.emb_model.encode_emb(batch['src'].long())
+            embedding = self.emb_model.encode(batch['src'].long(), batch['src_mask'])
             # print("Embedding Size:", embedding.size())
             out = self.model.forward(embedding)
             k = 100
@@ -105,8 +106,6 @@ class Solver():
                 elapsed = time.time() - start
                 print("Epoch Step: %d Loss: %f Time: %f lr: %6.6f" %
                         (step, np.mean(total_loss), elapsed, optim.param_groups[0]['lr']))
-                self.outfile.write("Epoch Step: %d Loss: %f Time: %f\n" %
-                        (step, np.mean(total_loss), elapsed))
                 try:
                     print('src:\n',self.data_utils.id2sent(gg))
                     print('tgt:\n',self.data_utils.id2label(yy))
@@ -131,16 +130,12 @@ class Solver():
                 print('=============================================')
                 print('Validation Result -> Loss : %6.6f' %(sum(total_loss)/len(total_loss)))
                 print('=============================================')
-                self.outfile.write('=============================================\n')
-                self.outfile.write('Validation Result -> Loss : %6.6f\n' %(sum(total_loss)/len(total_loss)))
-                self.outfile.write('=============================================\n')
                 # self.model.train()
                 self.log.add_scalar('Loss/valid', sum(total_loss)/len(total_loss), step)
 
                 if min_loss > sum(total_loss)/len(total_loss):
                     min_loss = sum(total_loss)/len(total_loss)
                     print('Saving ' + str(step//10000) + 'w_model.pth!\n')
-                    self.outfile.write('Saving ' + str(step//10000) + 'w_model.pth\n')
                     idx_dir = make_save_dir(os.path.join(self.model_dir, self.args.idx))
                     model_name = str(step//10000) + 'w_' + '%6.6f'%(sum(total_loss)/len(total_loss)) + 'model.pth'
                     state = {'step': step, 'state_dict': self.model.state_dict()}
@@ -148,7 +143,6 @@ class Solver():
                     torch.save(state, os.path.join(idx_dir, model_name))
                 else:
                     print('Valid Loss did not decrease on step', str(step))
-                    self.outfile.write('Valid Loss did not decrease on step' + str(step) + '\n')
 
     def test(self):
         #prepare embedding model
