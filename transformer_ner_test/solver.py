@@ -71,10 +71,10 @@ class Solver():
         if self.args.load_model:
             state_dict = torch.load(self.args.load_model)['state_dict']
             self.model.load_state_dict(state_dict)
-            min_loss = float(self.args.load_model.spilt('/')[-1].split('_')[1][:8])
+            min_loss = float(self.args.load_model.split('/')[-1].split('_')[1][:8])
             print("Loading model from " + self.args.load_model + "...")
             print("Min Loss start from", min_loss)
-        start_step = int(self.args.load_model.spilt('/')[-1].split('_')[0][:2])*10000
+        start_step = int(self.args.load_model.split('/')[-1].split('_')[0][:2])*10000
         warmup_steps = 10000
         d_model = 512
         lr = 1e-7
