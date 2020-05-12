@@ -88,8 +88,8 @@ class Solver():
             #     for param_group in optim.param_groups:
             #         param_group['lr'] = lr
 
-            # embedding = self.emb_model.encode_emb(batch['src'].long())
-            embedding = self.emb_model.encode(batch['src'].long(), batch['src_mask'])
+            # embedding = self.emb_model.encode_emb(batch['src'].long()).detach()
+            embedding = self.emb_model.encode(batch['src'].long(), batch['src_mask']).detach()
             # print("Embedding Size:", embedding.size())
             out = self.model.forward(embedding)
             k = 100
@@ -177,8 +177,8 @@ class Solver():
                 print('%d batch processed. Time elapsed: %f min.' %(step, (time.time() - start)/60.0))
                 start = time.time()
             
-            embedding = self.emb_model.encode_emb(batch['src'].long())
-            # embedding = self.emb_model.encode(batch['src'].long(), batch['src_mask'])
+            # embedding = self.emb_model.encode_emb(batch['src'].long())
+            embedding = self.emb_model.encode(batch['src'].long(), batch['src_mask'])
             out = self.model.forward(embedding)
             
             out = torch.argmax(out, dim = 2)
