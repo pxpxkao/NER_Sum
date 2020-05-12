@@ -16,6 +16,7 @@ def parse():
     parser.add_argument('-test_ner_tgt_file',default='/nfs/nas-7.1/pwgao/data/cnndm/test.ner.src',help='data dir')
     parser.add_argument('-load_emb', default="/nfs/nas-7.1/pwgao/data/90w_1.561824model.pth", help= 'load: emb_model_dir', dest= 'load_embmodel')
     parser.add_argument('-load', help= 'load: model_dir', dest= 'load_model')
+    parser.add_argument('-only_emb', action='store_true',help='whether only word embedding')
     parser.add_argument('-train', action='store_true',help='whether train whole model')
     parser.add_argument('-test', action='store_true',help='whether test')
     parser.add_argument('-dict', default='../origin/data/dictionary.json', help='dict_dir')
