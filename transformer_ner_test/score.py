@@ -2,7 +2,9 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics import classification_report
 
-classes = ['O', 'I-ORG', 'I-LOC', 'I-MISC', 'I-PER', 'B-MISC', 'B-ORG', 'B-LOC']
+#classes = ['O', 'I-ORG', 'I-LOC', 'I-MISC', 'I-PER', 'B-MISC', 'B-ORG', 'B-LOC']
+classes = ["O", "GPE", "ORG", "NORP", "CARDINAL", "DATE", "PERSON", "TIME", "LOC", "PRODUCT", "PERCENT", "FAC", "ORDINAL", "QUANTITY", "WORK_OF_ART", "MONEY", "EVENT", "LAW", "LANGUAGE"]
+
 
 test = []
 with open('/nfs/nas-7.1/pwgao/data/cnndm/test.ner.src') as f:
