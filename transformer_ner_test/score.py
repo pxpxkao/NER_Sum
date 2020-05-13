@@ -1,5 +1,10 @@
 import sys
 args = sys.argv
+if len(args) == 1:
+    name = 'pred_dir/pred.txt'
+else:
+    name = args[1]
+print("Testing file:", name)
 import pandas as pd
 import numpy as np
 from sklearn.metrics import classification_report
@@ -14,7 +19,7 @@ with open('/nfs/nas-7.1/pwgao/data/cnndm/test.ner.src') as f:
         ner_list = line.split()
         test.append(ner_list)
 pred = []
-with open(args[1]) as f:
+with open(name) as f:
     for line in f.readlines():
         ner_list = line.split()
         pred.append(ner_list)

@@ -6,4 +6,4 @@ transformer_ner_extra_different_embedding/pred_dir/
 /transformer_ner_extra_same_embedding/train_model/
 /transformer_ptr/pred_dir/
 /transformer_ptr/train_model/
-
+./vscode
