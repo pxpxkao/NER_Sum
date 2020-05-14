@@ -6,6 +6,7 @@ def parse():
     parser.add_argument('-model_dir',default='train_model',help='output model weight dir')
     parser.add_argument('-batch_size', type=int, default=32, help='batch size')
     parser.add_argument('-num_layer', type=int, default=4)
+    parser.add_argument('-num_epoch', type=int, default=100)
     parser.add_argument('-train_file',default='/nfs/nas-7.1/pwgao/data/cnndm/train.txt.src',help='data dir')
     parser.add_argument('-tgt_file',default='/nfs/nas-7.1/pwgao/data/cnndm/train.txt.tgt.tagged',help='data dir')
     parser.add_argument('-valid_file',default='/nfs/nas-7.1/pwgao/data/cnndm/val.txt.src',help='data dir')

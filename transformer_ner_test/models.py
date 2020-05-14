@@ -68,7 +68,7 @@ class EncoderDecoder(nn.Module):
                             tgt, tgt_mask, src_extended, oov_nums)
     
     def encode_emb(self, src):
-        return self.src_embed(src)
+        return self.src_embed[0](src)
 
     def encode(self, src, src_mask):
         return self.encoder(self.src_embed(src), src_mask)

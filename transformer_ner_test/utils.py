@@ -152,6 +152,7 @@ class data_utils():
         print(src_file)
         print(tgt_file)
         print(self.batch_size)
+        print(num_epoch)
         src_length = 400
         batch = {'src':[],'src_mask':[],'y':[]}
         for epo in range(num_epoch):

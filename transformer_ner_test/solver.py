@@ -58,11 +58,15 @@ class Solver():
 
     def train(self):
 
-        data_yielder = self.data_utils.data_yielder(self.args.train_file, self.args.train_ner_tgt_file)
+        data_yielder = self.data_utils.data_yielder(self.args.train_file, self.args.train_ner_tgt_file, self.args.num_epoch)
         optim = torch.optim.Adam(self.model.parameters(), lr=1e-7, betas=(0.9, 0.998), eps=1e-8, amsgrad=True)
         total_loss = []
         start = time.time()
         print('start training...')
+        start_step = 0
+        warmup_steps = 10000
+        d_model = 512
+        lr = 1e-7
         min_loss = 100000000000
         if self.args.load_embmodel:
             state_dict = torch.load(self.args.load_embmodel)['state_dict']
@@ -74,10 +78,8 @@ class Solver():
             min_loss = float(self.args.load_model.split('/')[-1].split('_')[1][:8])
             print("Loading model from " + self.args.load_model + "...")
             print("Min Loss start from", min_loss)
-        start_step = int(self.args.load_model.split('/')[-1].split('_')[0][:2])*10000
-        warmup_steps = 10000
-        d_model = 512
-        lr = 1e-7
+            start_step = int(self.args.load_model.split('/')[-1].split('_')[0][:2])*10000
+        
 
         self.emb_model.eval()
         for step in range(start_step, 1000002):
@@ -120,7 +122,7 @@ class Solver():
                 self.log.add_scalar('Loss/train', np.mean(total_loss), step)
                 total_loss = []
                 
-            if step % 10000 == 1:
+            if step % 100000 == 1:
                 self.model.eval()
                 val_yielder = self.data_utils.data_yielder(self.args.valid_file, self.args.valid_ner_tgt_file, 1)
                 total_loss = []
