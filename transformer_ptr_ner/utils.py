@@ -206,7 +206,7 @@ class data_utils():
                 print('Finish Epoch %d, Time Elapsed: %f' % (epo,end_time-start_time))
 
         else:
-            batch = {'src':[], 'src_mask':[], 'src_extended':[], 'oov_list':[], 'ner':[]}
+            batch = {'src':[], 'src_mask':[], 'src_extended':[], 'oov_list':[], 'ner':[], 'ner_text':[]}
             for epo in range(1):
                 start_time = time.time()
                 print("start epo %d" % (epo))
@@ -224,15 +224,16 @@ class data_utils():
                         batch['src_extended'].append(vec1_extended)
                         batch['src_mask'].append(np.expand_dims(vec1 != self.eos, -2).astype(np.float))
                         batch['ner'].append(ner_vec)
+                        batch['ner_text'].append(ners.strip())
                         # batch['oov_list'].append(oov_list)
                         if len(batch['src']) == self.batch_size:
-                            batch = {k: (cc(v) if k != 'oov_list' else v) for k, v in batch.items()}
+                            batch = {k: (cc(v) if ((k != 'oov_list') and (k != 'ner_text')) else v) for k, v in batch.items()}
                             batch['oov_list'] = oov_list
                             torch.cuda.synchronize()
                             yield batch
-                            batch = {'src':[], 'src_mask':[], 'src_extended':[], 'oov_list':[], 'ner':[]}
+                            batch = {'src':[], 'src_mask':[], 'src_extended':[], 'oov_list':[], 'ner':[], 'ner_text':[]}
                             oov_list = []
-                batch = {k: (cc(v) if k != 'oov_list' else v) for k, v in batch.items()}
+                batch = {k: (cc(v) if ((k != 'oov_list') and (k != 'ner_text')) else v) for k, v in batch.items()}
                 batch['oov_list'] = oov_list
                 torch.cuda.synchronize()
                 yield batch
