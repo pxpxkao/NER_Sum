@@ -48,6 +48,7 @@ def tens2np(tensor):
 
 def make_dict(max_num, dict_path, train_path, target_path):
     #create dict with voc length of max_num
+    print('making dict from %s and %s'%(train_path, target_path))
     word_count = dict()
     word2id = dict()
     line_count = 0
@@ -61,10 +62,11 @@ def make_dict(max_num, dict_path, train_path, target_path):
         for word in line.split():
             word_count[word] = word_count.get(word,0) + 1
 
-     
+    word2id['__PAD__'] = len(word2id) 
     word2id['__EOS__'] = len(word2id)
     word2id['__BOS__'] = len(word2id)
     word2id['__UNK__'] = len(word2id)
+    
     word_count_list = sorted(word_count.items(), key=operator.itemgetter(1))
     for item in word_count_list[-(max_num*2):][::-1]:
         
@@ -103,7 +105,7 @@ class data_utils():
         print('vocab_size:',self.vocab_size)
         self.eos = self.word2id['__EOS__']
         self.bos = self.word2id['__BOS__']
-        self.pad = self.eos
+        self.pad = self.word2id['__PAD__']
         self.pointer_gen = args.pointer_gen
         # self.pad = self.word2id['__UNK__']
 
@@ -195,7 +197,7 @@ class data_utils():
                         ner = self.ent2id(line3.strip(), src_length)
                     if vec1 is not None and vec2 is not None:
                         batch['src'].append(vec1)
-                        batch['src_mask'].append(np.expand_dims(vec1 != self.eos, -2).astype(np.float))
+                        batch['src_mask'].append(np.expand_dims(vec1 != self.pad, -2).astype(np.float))
                         batch['src_extended'].append(vec1_extended)
                         batch['tgt'].append(np.concatenate([[self.bos],vec2], axis=0)[:-1])
                         batch['tgt_mask'].append(self.subsequent_mask(vec2))
@@ -218,8 +220,15 @@ class data_utils():
                             batch = {'src':[],'tgt':[],'src_mask':[],'tgt_mask':[],'y':[], 'src_extended':[], 'oov_list':[], 'ner':[]}
                             oov_list = []
                             #batch = {'src':[]}
-                end_time = time.time()
-                print('finish epo %d, time %f' % (epo,end_time-start_time))
+                if len(batch['src']) != 0:
+                    batch = {k: (cc(v) if k != 'oov_list' else v) for k, v in batch.items()}
+                    batch['oov_list'] = oov_list
+                    torch.cuda.synchronize()
+                    yield batch
+                    batch = {'src':[],'tgt':[],'src_mask':[],'tgt_mask':[],'y':[], 'src_extended':[], 'oov_list':[], 'ner':[]}
+                    oov_list = []
+                    end_time = time.time()
+                    print('finish epo %d, time %f' % (epo,end_time-start_time))
 
         else:
             batch = {'src':[], 'src_mask':[], 'src_extended':[], 'oov_list':[], 'ner':[]}
@@ -241,7 +250,7 @@ class data_utils():
                     if vec1 is not None:
                         batch['src'].append(vec1)
                         batch['src_extended'].append(vec1_extended)
-                        batch['src_mask'].append(np.expand_dims(vec1 != self.eos, -2).astype(np.float))
+                        batch['src_mask'].append(np.expand_dims(vec1 != self.pad, -2).astype(np.float))
                         if self.add_ner:
                             ner_one_hot = torch.zeros(src_length, class_num).scatter_(1, torch.LongTensor(np.expand_dims(ner, 1)), 1)
                             batch['ner'].append(ner_one_hot.numpy())
@@ -253,12 +262,16 @@ class data_utils():
                             yield batch
                             batch = {'src':[], 'src_mask':[], 'src_extended':[], 'oov_list':[], 'ner':[]}
                             oov_list = []
-                batch = {k: (cc(v) if k != 'oov_list' else v) for k, v in batch.items()}
-                batch['oov_list'] = oov_list
-                torch.cuda.synchronize()
-                yield batch
-                end_time = time.time()
-                print('finish epo %d, time %f' % (epo,end_time-start_time))
+                            
+                if len(batch['src']) != 0:
+                    batch = {k: (cc(v) if k != 'oov_list' else v) for k, v in batch.items()}
+                    batch['oov_list'] = oov_list
+                    torch.cuda.synchronize()
+                    yield batch
+                    batch = {'src':[],'tgt':[],'src_mask':[],'tgt_mask':[],'y':[], 'src_extended':[], 'oov_list':[], 'ner':[]}
+                    oov_list = []
+                    end_time = time.time()
+                    print('finish epo %d, time %f' % (epo,end_time-start_time))
 
 
 
@@ -270,14 +283,14 @@ class data_utils():
         word_dict={}
         if False:
             for index in indices:
-                if test and (index == self.word2id['__EOS__'] or index in word_dict):
+                if test and (index == self.word2id['__PAD__'] or index in word_dict):
                     continue
                 sent.append(self.index2word[index])
                 word_dict[index] = 1
         else:            
             for index in indices:
                 if oov_list == None:
-                    if test and (index == self.word2id['__EOS__'] or index.item() in word_dict):
+                    if test and (index == self.word2id['__PAD__'] or index.item() in word_dict):
                         continue
                     sent.append(self.index2word[index.item()])
                 else:
@@ -287,7 +300,7 @@ class data_utils():
                             continue
                         sent.append(oov_list[index.item() - self.vocab_size])
                     else:
-                        if test and (index.item() == self.word2id['__EOS__'] or index.item() in word_dict):
+                        if test and (index.item() == self.word2id['__PAD__'] or index.item() in word_dict):
                             continue
                         sent.append(self.index2word[index.item()])
 

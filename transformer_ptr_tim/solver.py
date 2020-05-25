@@ -11,8 +11,39 @@ from attention import *
 # from torch.utils.tensorboard import SummaryWriter
 from beam import Beam
 from modules import subsequent_mask
-from rouge import FilesRouge 
+# from rouge import FilesRouge 
+from rouge_score import rouge_scorer
 
+
+def cal_rouge_score(filename1, filename2):
+    f1 = open(filename1, 'r')
+    f2 = open(filename2, 'r')
+    summary = f1.readlines()
+    reference = f2.readlines()
+    """
+    for i in range(len(summary)):
+        summary[i] = re.sub('[%s]' % re.escape(string.punctuation), '', summary[i])
+        reference[i] = re.sub('[%s]' % re.escape(string.punctuation), '', reference[i])
+    """
+    for i in range(len(summary)):
+        summary[i] = summary[i].strip().replace('<t>', '').replace('</t>', '').strip()
+        reference[i] = reference[i].strip().replace('<t>', '').replace('</t>', '').strip()
+    print(len(summary))
+    print(len(reference))
+    #summary = summary[1:1000]
+    #reference = reference[1:1000]
+    scorer = rouge_scorer.RougeScorer(['rouge1', 'rouge2', 'rougeL', 'rougeLsum'], use_stemmer=True)
+    scores = {"rouge1":[], "rouge2":[],"rougeL":[],"rougeLsum":[]}
+    for i in range(len(summary)):
+        s = scorer.score(summary[i], reference[i])
+        if i%1000==0:
+            print(i)
+        for k, v in s.items():
+            scores[k].append(s[k].fmeasure)
+
+    for k, v in scores.items():
+        scores[k] = sum(v)/len(v)
+    return scores
     
 class Solver():
     def __init__(self, args):
@@ -27,6 +58,8 @@ class Solver():
             # self.logfile = os.path.join(args.logdir, args.exp_name)
             # self.log = SummaryWriter(self.logfile)
             self.w_valid_file = args.w_valid_file
+            if os.path.exists(self.w_valid_file):
+                os.remove(self.w_valid_file)
 
     def make_model(self, src_vocab, tgt_vocab, N=6, dropout=0.1,
             d_model=512, d_ff=2048, h=8, num_class=19):
@@ -56,7 +89,7 @@ class Solver():
             # Initialize parameters with Glorot / fan_avg.
             for p in model.parameters():
                 if p.dim() > 1:
-                    nn.init.xavier_uniform(p)
+                    nn.init.xavier_uniform_(p)
             return model.cuda()
 
     def train(self):
@@ -82,6 +115,7 @@ class Solver():
         total_loss = []
         start = time.time()
         print('start training...')
+        print('w_valid_file: %s'%self.w_valid_file)
         if self.args.load_model:
             state_dict = torch.load(self.args.load_model)['state_dict']
             self.model.load_state_dict(state_dict)
@@ -92,7 +126,7 @@ class Solver():
         lr = 1e-7
         #path = torch.load("./train_model/10w_model.pth")
         #self.model.load_state_dict(path, strict = False)
-        for step in range(1000000):
+        for step in range(2000000):
             self.model.train()
             batch = data_yielder.__next__()
             if step % 100 == 1:
@@ -109,6 +143,7 @@ class Solver():
                 out = self.model.forward_ner(batch['src'], batch['tgt'], 
                             batch['src_mask'], batch['tgt_mask'], batch['src_extended'], len(batch['oov_list']), batch['ner'])
             else:
+                # print('for')
                 out = self.model.forward(batch['src'], batch['tgt'], 
                             batch['src_mask'], batch['tgt_mask'], batch['src_extended'], len(batch['oov_list']))
             pred = out.topk(1, dim=-1)[1].squeeze().detach().cpu().numpy()[0]
@@ -117,6 +152,7 @@ class Solver():
             yy = batch['y'].long().detach().cpu().numpy()[0]
             loss = self.model.loss_compute(out, batch['y'].long())
             loss.backward()
+            nn.utils.clip_grad_value_(self.model.parameters(), self.args.clip_value)
             optim.step()
             optim.zero_grad()
             total_loss.append(loss.detach().cpu().numpy())
@@ -183,9 +219,15 @@ class Solver():
                             fw.write(sentence)
                             fw.write("\n")
                 fw.close()
-                files_rouge = FilesRouge()
-                scores = files_rouge.get_scores(self.w_valid_file, self.args.valid_tgt_file, avg=True)
-                r1_score = scores['rouge-1']['f']
+                # files_rouge = FilesRouge()
+                print('Getting Score from %s'%self.w_valid_file)
+                scores = cal_rouge_score(self.w_valid_file, self.args.valid_tgt_file)
+                r1_score = scores['rouge1']
+                r2_score = scores['rouge2']
+
+                # scores = files_rouge.get_scores(self.w_valid_file, self.args.valid_tgt_file, avg=True)
+                # r1_score = scores['rouge-1']['f']
+                # r2_score = scores['rouge-2']['f']
                 print('=============================================')
                 print('Validation Result -> Loss : %6.6f' %(sum(total_loss)/len(total_loss)))
                 print(scores)
@@ -196,16 +238,17 @@ class Solver():
                 # self.model.train()
                 # self.log.add_scalar('Loss/valid', sum(total_loss)/len(total_loss), step)
                 # self.log.add_scalar('Score/valid', r1_score, step)
-                if not disable_comet:
+                if not self.args.disable_comet:
                     self.exp.log_metric('Valid Loss', sum(total_loss)/ len(total_loss), step=step)
-                    self.exp.log_metric('Valid Score', r1_score, step = step)
+                    self.exp.log_metric('R1 Score', r1_score, step = step)
+                    self.exp.log_metric('R2 Score', r2_score, step = step)
 
                 w_step = int(step/10000)
                 if self.args.load_model:
                     w_step += (int(self.args.load_model.split('/')[-1][0]))
                 print('Saving ' + str(w_step) + '0w_model.pth!\n')
                 self.outfile.write('Saving ' + str(w_step) + 'w_model.pth\n')
-                model_name = str(w_step) + 'w_' + '%6.6f_'%(sum(total_loss)/len(total_loss)) + '%2.3f_'%r1_score + 'model.pth'
+                model_name = str(w_step) + 'w_' + '%6.6f_'%(sum(total_loss)/len(total_loss)) + '%2.3f_'%r1_score + '%2.3f_'%r2_score + 'model.pth'
                 state = {'step': step, 'state_dict': self.model.state_dict()}
 
                 torch.save(state, os.path.join(self.model_dir, model_name))

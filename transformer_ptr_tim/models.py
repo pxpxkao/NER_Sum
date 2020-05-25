@@ -47,9 +47,10 @@ class EncoderDecoder(nn.Module):
         true_dist = out.data.clone()
         true_dist.fill_(0.)
         true_dist.scatter_(2, y.unsqueeze(2), 1.)
-        true_dist[:,:,0] *= 0.01
+        true_dist[:, :, 0] = 0  #padding idx
 
-        return -(true_dist*torch.log(out)).sum(dim=2).mean()
+
+        return -(true_dist*torch.log(out+1e-32)).sum(dim=2).mean()
         #return -torch.gather(out, 2, y.unsqueeze(2)).squeeze(2).mean()
 
 
@@ -68,7 +69,7 @@ class EncoderDecoder(nn.Module):
     #     return ys
 
 
-    def greedy_decode(self, src, src_mask, max_len, start_symbol, oov_nums, vocab_size):
+    def greedy_decode(self, src, src_mask, max_len, start_symbol, oov_nums, vocab_size, min_len = 30, unk_idx = 3, pad_idx = 0, eos_idx = 1):
         # print('src', src.size())
         extend_mask = src < vocab_size
         memory = self.encode(src * extend_mask, src_mask)
@@ -89,14 +90,20 @@ class EncoderDecoder(nn.Module):
                                Variable(subsequent_mask(ys.size(1))
                                         .type_as(src.data).expand((ys.size(0), ys.size(1), ys.size(1)))), src, oov_nums)
 
+            if i <= min_len:
+                # print('log_prob', log_prob.size())
+                log_prob[:,:,eos_idx] = 0.0
+                log_prob[:,:,pad_idx] = 0
+
+            log_prob[:,:, unk_idx] = 0.0
             _, next_word = torch.max(log_prob, dim = -1)
             next_word = next_word.data[:,-1]
-            unk_mask = (next_word == 2).long()
+            # unk_mask = (next_word == unk_idx).long()
 
-            _, second = torch.topk(log_prob, 2, dim = -1)
-            second = second[:, -1, 1]
+            # _, second = torch.topk(log_prob, 2, dim = -1)
+            # second = second[:, -1, 1]
 
-            next_word = (1-unk_mask) * next_word + unk_mask * second
+            # next_word = (1-unk_mask) * next_word + unk_mask * second
 
             
             ret = torch.cat([ret, 
@@ -110,17 +117,17 @@ class EncoderDecoder(nn.Module):
         return ys
 
 
-class Generator(nn.Module):
-    "Define standard linear + softmax generation step."
-    def __init__(self, d_model, vocab):
-        super(Generator, self).__init__()
-        self.proj = nn.Sequential(
-            nn.Linear(d_model, vocab),
-            nn.Dropout(0.1)
-            )
+# class Generator(nn.Module):
+#     "Define standard linear + softmax generation step."
+#     def __init__(self, d_model, vocab):
+#         super(Generator, self).__init__()
+#         self.proj = nn.Sequential(
+#             nn.Linear(d_model, vocab),
+#             nn.Dropout(0.1)
+#             )
 
-    def forward(self, x):
-        return F.log_softmax(self.proj(x), dim=-1)
+#     def forward(self, x):
+#         return F.log_softmax(self.proj(x), dim=-1)
 
 
     
@@ -185,7 +192,8 @@ class Decoder(nn.Module):
             x, _ = layer(x, memory, src_mask, tgt_mask)
         x, attn_weights = self.layers[-1](x, memory, src_mask, tgt_mask)
         dec_dist = self.proj(self.norm(x))
-        
+        # print('dec_dist', dec_dist.size())
+        dec_dist[:, :, 0] = -float('inf')
         if self.pointer_gen:
             s_t = x
             h_t = torch.bmm(attn_weights, memory)  #context vector

@@ -34,6 +34,7 @@ def parse():
     parser.add_argument('-exp_name', type=str)
     parser.add_argument('-pointer_gen', action = 'store_true')
     parser.add_argument('-dropout', default = 0.5, type=float)
+    parser.add_argument('-clip_value', default = 2.0, type=float)
     parser.add_argument('-beam_size', default=1, type=int)
     parser.add_argument('-n_best', default=1, type=int)
     parser.add_argument('-min_len', type=int, default=30, dest='min_length')
