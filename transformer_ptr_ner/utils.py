@@ -61,7 +61,8 @@ def make_dict(max_num, dict_path, train_path, target_path):
         for word in line.split():
             word_count[word] = word_count.get(word,0) + 1
 
-     
+    
+    word2id['__PAD__'] = len(word2id)
     word2id['__EOS__'] = len(word2id)
     word2id['__BOS__'] = len(word2id)
     word2id['__UNK__'] = len(word2id)
@@ -100,11 +101,12 @@ class data_utils():
             self.index2word[self.word2id[word]] = word
 
         self.vocab_size = len(self.word2id)
-        print('vocab_size:',self.vocab_size)
+        print('Reading from dict %s, vocab_size: %d'%(dict_path, self.vocab_size))
         self.eos = self.word2id['__EOS__']
         self.bos = self.word2id['__BOS__']
-        self.pad = self.eos
+        self.pad = self.word2id['__PAD__']
         self.pointer_gen = args.pointer_gen
+        self.unk = self.word2id['__UNK__']
         # self.pad = self.word2id['__UNK__']
 
 
@@ -163,14 +165,14 @@ class data_utils():
                 for line1,line2 in zip(open(src_file),open(tgt_file)):
                     line1, ners = line1.strip().split('\t')[0], line1.strip().split('\t')[1]
                     vec1, vec1_extended, oov_list = self.text2id(line1.strip(), src_length, oov_list)
-                    vec2, vec2_extended, oov_list = self.text2id(line2.strip(), tgt_length, oov_list)
+                    vec2, vec2_extended, oov_list = self.text2id(line2.strip() + ' __EOS__', tgt_length, oov_list)
                     
                     ner_vec, _, _ = self.text2id(ners.strip(), 10, [])
                     # print('===============')
 
                     if vec1 is not None and vec2 is not None:
                         batch['src'].append(vec1)
-                        batch['src_mask'].append(np.expand_dims(vec1 != self.eos, -2).astype(np.float))
+                        batch['src_mask'].append(np.expand_dims(vec1 != self.pad, -2).astype(np.float))
                         batch['src_extended'].append(vec1_extended)
                         batch['tgt'].append(np.concatenate([[self.bos],vec2], axis=0)[:-1])
                         batch['tgt_mask'].append(self.subsequent_mask(vec2))
@@ -222,7 +224,7 @@ class data_utils():
                     if vec1 is not None:
                         batch['src'].append(vec1)
                         batch['src_extended'].append(vec1_extended)
-                        batch['src_mask'].append(np.expand_dims(vec1 != self.eos, -2).astype(np.float))
+                        batch['src_mask'].append(np.expand_dims(vec1 != self.pad, -2).astype(np.float))
                         batch['ner'].append(ner_vec)
                         batch['ner_text'].append(ners.strip())
                         # batch['oov_list'].append(oov_list)
@@ -250,14 +252,14 @@ class data_utils():
         word_dict={}
         if beam_search:
             for index in indices:
-                if test and (index == self.word2id['__EOS__'] or index in word_dict):
+                if test and (index == self.eos or index == self.pad or index in word_dict):
                     continue
                 sent.append(self.index2word[index])
                 word_dict[index] = 1
         else:            
             for index in indices:
                 if oov_list == None:
-                    if test and (index == self.word2id['__EOS__'] or index.item() in word_dict):
+                    if test and (index == self.eos or index == self.pad or index.item() in word_dict):
                         continue
                     sent.append(self.index2word[index.item()])
                 else:
@@ -266,7 +268,7 @@ class data_utils():
                             continue
                         sent.append(oov_list[index.item() - self.vocab_size])
                     else:
-                        if test and (index.item() == self.word2id['__EOS__'] or index.item() in word_dict):
+                        if test and (index.item() == self.eos or index.item() == self.pad or index.item() in word_dict):
                             continue
                         sent.append(self.index2word[index.item()])
 

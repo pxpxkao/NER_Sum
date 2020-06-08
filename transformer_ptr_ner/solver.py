@@ -15,6 +15,8 @@ from modules import subsequent_mask
 # from rouge import FilesRouge 
 from rouge_score import rouge_scorer
 from transformers import AlbertModel, AlbertTokenizer
+import sys
+sys.setrecursionlimit(1000000)
 
 def cal_rouge_score(filename1, filename2):
     f1 = open(filename1, 'r')
@@ -336,7 +338,8 @@ class Solver():
                 # self.log.add_scalar('Score/valid', r1_score, step)
                 if not self.disable_comet:
                     self.exp.log_metric('Valid Loss', sum(total_loss)/len(total_loss), step=step)
-                    self.exp.log_metric('Valid Score', r1_score, step=step)
+                    self.exp.log_metric('R1 Score', r1_score, step=step)
+                    self.exp.log_metric('R2 Score', r2_score, step=step)
 
                 #Saving Checkpoint
                 w_step = int(step/10000)

@@ -31,11 +31,11 @@ class EncoderDecoder(nn.Module):
     def decode(self, memory, ner, src_mask, tgt, tgt_mask, src, oov_nums=None, print_gate=False, ner_mask=None):
         return self.decoder(self.tgt_embed(tgt), memory, ner, src_mask, tgt_mask, src, oov_nums, print_gate, ner_mask)
 
-    def loss_compute(self, out, y):
+    def loss_compute(self, out, y, padding_idx=0):
         true_dist = out.data.clone()
         true_dist.fill_(0.)
         true_dist.scatter_(2, y.unsqueeze(2), 1.)
-        true_dist[:,:,0] *= 0.01
+        true_dist[:,:,0] *= 0.0
 
         return -(true_dist*torch.log(out)).sum(dim=2).mean()
         #return -torch.gather(out, 2, y.unsqueeze(2)).squeeze(2).mean()
@@ -369,3 +369,29 @@ class Albert_Encoder(nn.Module):
     def forward(self, ner):
         x = self.encoder(ner)[0].detach()
         return self.linear(x)
+
+
+class Seq_Entity_Encoder(nn.Module):
+    def __init__(self, embed, encoder):
+        super(Seq_Entity_Encoder, self).__init__()
+        self.embed = embed
+        self.encoder = encoder
+
+    def forward(self, inputs, mask=None):
+        x = self.embed(inputs)
+        x = self.encoder(x, mask)
+        return x[:,-1]
+
+
+
+def gen_mask(lengths, _cuda=True):
+    batch_size = lengths.size(0)
+    max_len = lengths.max()
+    m = torch.arange(max_len).repeat(batch_size, 1).cuda()
+
+    length_mat = lengths.unsqueeze(-1).expand_as(m).cuda()
+    mask = torch.where(m<length_mat, torch.ones((batch_size, max_len)).cuda(), torch.zeros((batch_size, max_len)).cuda())
+    if _cuda:
+        return mask.unsqueeze(1).cuda()
+    else:
+        return mask.unsqueeze(1)

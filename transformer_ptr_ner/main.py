@@ -1,5 +1,6 @@
 import argparse
 from solver import Solver
+from coref_solver import CorefSolver
 
 def parse():
     parser = argparse.ArgumentParser(description="tree transformer")
@@ -15,6 +16,7 @@ def parse():
     parser.add_argument('-total_steps', type=int, default=1000000)
     parser.add_argument('-print_every_steps', type=int, default=5000)
     parser.add_argument('-valid_every_steps', type=int, default=100000)
+    parser.add_argument('-max_num_clusters', type=int, default=12)
     # parser.add_argument('-n_best', type=int, default=1)
 
     #model config
@@ -22,6 +24,7 @@ def parse():
     parser.add_argument('-pointer_gen', action = 'store_true')
     parser.add_argument('-ner_last', action = 'store_true')
     parser.add_argument('-ner_at_embedding', action='store_true')
+    parser.add_argument('-coref', action='store_true')
     parser.add_argument('-dropout', default = 0.5, type=float)
     parser.add_argument('-entity_encoder_type', type=str, default='linear')
     parser.add_argument('-fusion', type = str, default='concat')
@@ -31,7 +34,11 @@ def parse():
     parser.add_argument('-tgt_file',default='../data/new_cnndm/train.txt.tgt.tagged',help='data dir')
     parser.add_argument('-valid_file',default='../data/new_cnndm/val.txt.src_ner_upperbound',help='data dir')
     parser.add_argument('-valid_tgt_file',default='../data/new_cnndm/val.txt.tgt.tagged',help='data dir')
+    parser.add_argument('-valid_ref_file',default='../data/new_cnndm/val.txt.tgt.tagged',help='data dir')
     parser.add_argument('-test_file',default='../data/new_cnndm/test.txt.src_ner_upperbound',help='data dir')
+    parser.add_argument('-coref_file',default='../data/coref_convert/train.convert.pkl',help='data dir')
+    parser.add_argument('-valid_coref_file',default='../data/coref_convert/val.convert.pkl',help='data dir')
+    parser.add_argument('-test_coref_file',default='../data/coref_convert/test.convert.pkl',help='data dir')
     #load model
     parser.add_argument('-load', help= 'load: model_dir', dest= 'load_model')
     parser.add_argument('-entity_encoder', help='load: entity_encoder_dir')
@@ -54,7 +61,10 @@ def parse():
 
 if __name__ == '__main__':
     args = parse()
-    solver = Solver(args)
+    if args.coref:
+        solver = CorefSolver(args)
+    else:
+        solver = Solver(args)
     
     if args.train:
         solver.train()
