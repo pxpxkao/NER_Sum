@@ -28,7 +28,7 @@
 ## Modified Attention Mechanism
 
 ### Proposed Architecture
-![Proposed Architecture](images/modified_attn.png)
+![Proposed Architecture](images/modified_attn.png =300x300)
 
 ### Experiments
 
