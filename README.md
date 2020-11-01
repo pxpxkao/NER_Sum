@@ -38,7 +38,7 @@
 - Fusion Type
   - concatenate: c<sub>t</sub> = [c<sub>t</sub><sup>s</sup> ;c<sub>t</sub><sup>n</sup> ]
   - gated: g<sub>t</sub> = _&sigma;_ (W<sub>g</sub> c<sub>t</sub><sup>s</sup> + U<sub>g</sub>c<sub>t</sub><sup>n</sup> )
-           c<sub>t</sub> = g<sub>t</sub> \cdots c<sub>t</sub><sup>s</sup> + (1-g<sub>t</sub>) \cdots c<sub>t</sub><sup>n</sup> 
+           c<sub>t</sub> = g<sub>t</sub> ⊙ c<sub>t</sub><sup>s</sup> + (1-g<sub>t</sub>) ⊙ c<sub>t</sub><sup>n</sup> 
 - NER information
   - added each layer
   - added only at last layer
