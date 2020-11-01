@@ -36,19 +36,39 @@
   - transformer (2 layer)
   - MLP (3 layer feed forward network)
 - Fusion Type
-  - concatenate: c<sub>t</sub> = [c<sub>t</sub><sup>s</sup> ;c<sub>t</sub><sup>n</sup> ]
-  - gated: g<sub>t</sub> = _&sigma;_ (W<sub>g</sub> c<sub>t</sub><sup>s</sup> + U<sub>g</sub>c<sub>t</sub><sup>n</sup> )
-           c<sub>t</sub> = g<sub>t</sub> ⊙ c<sub>t</sub><sup>s</sup> + (1-g<sub>t</sub>) ⊙ c<sub>t</sub><sup>n</sup> 
+  - concatenate: 
+    - c<sub>t</sub> = [c<sub>t</sub><sup>s</sup> ;c<sub>t</sub><sup>n</sup> ]
+  - gated: 
+    - g<sub>t</sub> = _&sigma;_ (W<sub>g</sub> c<sub>t</sub><sup>s</sup> + U<sub>g</sub>c<sub>t</sub><sup>n</sup> ) 
+    - c<sub>t</sub> = g<sub>t</sub> ⊙ c<sub>t</sub><sup>s</sup> + (1-g<sub>t</sub>) ⊙ c<sub>t</sub><sup>n</sup> 
 - NER information
   - added each layer
-  - added only at last layer
+  - added only at last layer (did not yield good results)
 
+### Results
+| model | ROUGE-1 | ROUGE-2 | ROUGE-L |
+|:-------------|:-------------:|:-------------:|:-------------:|
+| `baseline` | **`37.74`** | `12.67` | `22.28` |
+| `linear entity encoder` | `30.63` | `12.55` | `21.17` |
+| `MLP entity encoder` | `33.19` | `13.77` | **`23.07`** |
+| `transformer entity encoder` | `31.80` | **`13.94`** | `22.25` |
+| `gated fusion` | `31.02` | `12.57` | `21.73` |
+
+### Observation & Discussions
+- MLP > transformer > linear (entity encoder)
+- gated fusion > concatenate 
+- sometimes generate repeated sentences
+- baseline model tend to copy source
+- MLP model knows when to stop 
+- Added entity encoder improves ROUGE-2 and -L generally, at the expense of lower ROUGE-1
 
 ## Entity-Aware Embedding
 ### Embedding Indicating Entity Type
 
 ### Add Entity Feature at Embedding
 
+
+### Results
 
 ## Future Work
 ### Coreference Resolution
