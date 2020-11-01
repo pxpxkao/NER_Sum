@@ -26,7 +26,7 @@
 
 
 ## Modified Attention Mechanism
-
+Instead of solving NER problem jointly with summarization, we treat NER information as **extra features**. By paying attention to and gathering information from the entities, the models are expected to learn to select salient entities and use them to our strength.
 ### Proposed Architecture
 <img src="images/modified_attn.png" alt="proposed architecture" width="400"/>
 
@@ -64,10 +64,12 @@
 
 ## Entity-Aware Embedding
 ### Embedding Indicating Entity Type
+See if the model can learn better content selection when they are told which words are entities.
+<img src="images/modified_attn.png" alt="proposed architecture" width="400"/>
 
 ### Add Entity Feature at Embedding
-
-
+Use the features mentioned in 'modified attention' method, but add them directly to the encoder word embeddings.
+<img src="images/modified_attn.png" alt="proposed architecture" width="400"/>
 ### Results
 
 ## Future Work
