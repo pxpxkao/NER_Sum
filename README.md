@@ -93,5 +93,37 @@ Use the features mentioned in 'modified attention' method, but add them directly
 
 ## Future Work
 ### Coreference Resolution
+#### Entity Mention Clusters 
+(Inspired by <a href = https://arxiv.org/abs/1909.02059> “An Entity-Driven Framework for Abstractive Summarization” </a>, 2019)
+- Extract the coreferenced entities
+- Group mentions of same entities into clusters
+- Select salient clusters:
+  - Clusters in first 3 sentences
+  - Clusters with top k most mentions (k = 6 in paper)
 
-### Entity Encoder
+#### Entity Encoder
+- Concatenate mentions of the same entity with special tokens 
+- Use any sequence model (RNN, Temporal convolutional model, transformer) to encode these clusters
+- Can be used for both 
+  - Modified attention model
+  - Entity-aware embedding model
+<img src="images/coref.JPG" alt="coref" width="400"/>
+
+#### Preliminary Results
+| model | ROUGE-1 | ROUGE-2 | ROUGE-L |
+|:-------------|:-------------:|:-------------:|:-------------:|
+| `baseline` | `21.52` | `2.82` | **`13.28`** |
+| `GRU (attention)` | `21.57` | `1.65` | `12.24` |
+| `LSTM (attention)` | **`22.40`** | **`2.45`** | `12.91` |
+** Note: The model is trained on a smaller dataset
+
+
+
+
+
+
+
+
+
+
+
