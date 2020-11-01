@@ -34,9 +34,9 @@
 - Entity Encoder Type
   - linear
   - transformer (2 layer)
-  - MLP (3 layer FFN)
+  - MLP (3 layer feed forward network)
 - Fusion Type
-  - concatenate (default)
+  - concatenate: c<sub>t</sub> = [c<sub>t</sub><sup></sup> ;c<sub>t</sub><sup></sup> ]
   - gated
 - NER information
   - added each layer
