@@ -28,7 +28,7 @@
 ## Modified Attention Mechanism
 
 ### Proposed Architecture
-![Proposed Architecture](Screen Shot 2020-11-01 at 4.18.29 PM.png)
+![Proposed Architecture](images/modified_attn.png)
 
 ### Experiments
 
