@@ -64,13 +64,30 @@ Instead of solving NER problem jointly with summarization, we treat NER informat
 
 ## Entity-Aware Embedding
 ### Embedding Indicating Entity Type
-See if the model can learn better content selection when they are told which words are entities.
-<img src="images/modified_attn.png" alt="proposed architecture" width="400"/>
+See if the model can learn better content selection when they are told which words are entities. However, the method did not yield good results.
+<img src="images/entity_type.jpg" alt="entity type" width="400"/>
 
 ### Add Entity Feature at Embedding
 Use the features mentioned in 'modified attention' method, but add them directly to the encoder word embeddings.
-<img src="images/modified_attn.png" alt="proposed architecture" width="400"/>
+<img src="images/entity_encoder.jpg" alt="entity encode" width="400"/>
+
 ### Results
+| model | ROUGE-1 | ROUGE-2 | ROUGE-L |
+|:-------------|:-------------:|:-------------:|:-------------:|
+| `baseline` | `37.53` | `13.24` | `23.78` |
+| `transformer entity encoder` | `39.45` | `14.35` | **`24.63`** |
+| `MLP entity encoder` | **`39.54`** | **`14.42`** | `24.47` |
+
+## Full Results
+| model | ROUGE-1 | ROUGE-2 | ROUGE-L |
+|:-------------|:-------------:|:-------------:|:-------------:|
+| `baseline` | `37.74` | `12.67` | `22.28` |
+| `linear entity encoder (modified attention)` | `30.63` | `12.55` | `21.17` |
+| `MLP entity encoder (modified attention)` | `33.19` | `13.77` | `23.07` |
+| `transformer entity encoder (modified attention)` | `31.80` | `13.94` | `22.25` |
+| `gated fusion (modified attention)` | `31.02` | `12.57` | `21.73` |
+| `transformer entity encoder (extra embed)` | `39.45` | `14.35` | **`24.63`** |
+| `MLP entity encoder (extra embed)` | **`39.54`** | **`14.42`** | `24.47` |
 
 ## Future Work
 ### Coreference Resolution
