@@ -112,18 +112,9 @@ Use the features mentioned in 'modified attention' method, but add them directly
 #### Preliminary Results
 | model | ROUGE-1 | ROUGE-2 | ROUGE-L |
 |:-------------|:-------------:|:-------------:|:-------------:|
-| `baseline` | `21.52` | `2.82` | **`13.28`** |
+| `baseline` | `21.52` | **`2.82`** | **`13.28`** |
 | `GRU (attention)` | `21.57` | `1.65` | `12.24` |
-| `LSTM (attention)` | **`22.40`** | **`2.45`** | `12.91` |
+| `LSTM (attention)` | **`22.40`** | `2.45` | `12.91` |
 ** Note: The model is trained on a smaller dataset
-
-
-
-
-
-
-
-
-
 
 
