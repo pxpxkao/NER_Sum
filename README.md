@@ -29,6 +29,7 @@
 
 ### Proposed Architecture
 ![Proposed Architecture](images/modified_attn.png=300x)
+<img src="images/modified_attn.png" alt="proposed architecture" width="300"/>
 
 ### Experiments
 
