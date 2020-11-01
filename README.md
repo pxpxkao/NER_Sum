@@ -64,12 +64,14 @@ Instead of solving NER problem jointly with summarization, we treat NER informat
 
 ## Entity-Aware Embedding
 ### Embedding Indicating Entity Type
-See if the model can learn better content selection when they are told which words are entities. However, the method did not yield good results.
-<img src="images/entity_type.jpg" alt="entity type" width="400"/>
+See if the model can learn better content selection when they are told which words are entities. However, the method did not yield good results.\
+
+<img src="images/entity_type.JPG" alt="entity type" width="400"/>
 
 ### Add Entity Feature at Embedding
-Use the features mentioned in 'modified attention' method, but add them directly to the encoder word embeddings.
-<img src="images/entity_encoder.jpg" alt="entity encode" width="400"/>
+Use the features mentioned in 'modified attention' method, but add them directly to the encoder word embeddings.\
+
+<img src="images/entity_encoder.JPG" alt="entity encode" width="400"/>
 
 ### Results
 | model | ROUGE-1 | ROUGE-2 | ROUGE-L |
