@@ -9,19 +9,27 @@
 
 
 ### Multi-Task Learning
-#### SOft-Sharing
-
-#### Hard Sharing
+#### Type
+- Soft-Sharing
+- Hard Sharing
 
 #### Results
+| model | ROUGE-1 | ROUGE-2 | ROUGE-L |
+|:-------------|:-------------:|:-------------:|:-------------:|
+| `transformer` | `6.77` | `1.62` | `1.98` |
 
 #### Discussion
+- 2 datasets differ a lot in vocab (some name entities recognized as OOV)
+  - Solution 1: Add more words from NER dataset to dictionary
+  - Solution 2: Use tools to tag NER of cnn/daliy dataset
+- CoNLL’03 dataset too small, may lead to overfitting
+
 
 
 ### Modified Attention Mechanism
-#### How to Choose Important Entity Tokens
 
 #### Proposed Architecture
+![Proposed Architecture](url)
 
 #### Experiments
 
