@@ -18,9 +18,9 @@
 | `transformer` | `6.77` | `1.62` | `1.98` |
 
 ### Discussion
-- 2 datasets differ a lot in vocab (some name entities recognized as OOV)
-  - Solution 1: Add more words from NER dataset to dictionary
-  - Solution 2: Use tools to tag NER of cnn/daliy dataset
+- 2 datasets (CoNLL'03 & CNN/DM) differ a lot in vocab (some name entities recognized as OOV)
+  - Solution 1: Add more words from NER dataset (CoNLL'03) to dictionary
+  - Solution 2: Use tools to tag NER of CNN/DM dataset
 - CoNLL’03 dataset too small, may lead to overfitting
 
 
@@ -31,6 +31,16 @@
 <img src="images/modified_attn.png" alt="proposed architecture" width="400"/>
 
 ### Experiments
+- Entity Encoder Type
+  - linear
+  - transformer (2 layer)
+  - MLP (3 layer FFN)
+- Fusion Type
+  - concatenate (default)
+  - gated
+- NER information
+  - added each layer
+  - added only at last layer
 
 
 ## Entity-Aware Embedding
